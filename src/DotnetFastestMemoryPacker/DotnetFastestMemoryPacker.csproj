@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFramework>net9.0</TargetFramework>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<Nullable>enable</Nullable>
+	<DisableRuntimeMarshallingAttribute>true</DisableRuntimeMarshallingAttribute>
+	<SkipInitAllocAttribute>true</SkipInitAllocAttribute>
+  </PropertyGroup>
+
+  <Target Name="RunPatcher" AfterTargets="AfterBuild">
+	<Exec Command="echo running patcher..." />
+	<Exec Command="start &quot;&quot; &quot;..\..\tools\patcher\bin\Debug\net9.0\patcher.exe&quot;" />
+  </Target>
+
+</Project>
