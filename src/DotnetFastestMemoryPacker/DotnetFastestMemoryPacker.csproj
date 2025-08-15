@@ -9,7 +9,7 @@
 	<SkipInitAllocAttribute>true</SkipInitAllocAttribute>
   </PropertyGroup>
 
-  <Target Name="RunPatcher" AfterTargets="AfterBuild">
+  <Target Name="RunPatcher" AfterTargets="AfterBuild" Condition="'$(Configuration)' == 'Release'">
 	<Exec Command="echo running patcher..." />
 	<Exec Command="start &quot;&quot; &quot;..\..\tools\patcher\bin\Debug\net9.0\patcher.exe&quot;" />
   </Target>

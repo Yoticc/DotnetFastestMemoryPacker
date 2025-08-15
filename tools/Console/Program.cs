@@ -1,56 +1,41 @@
-﻿unsafe class Program
+﻿using DotnetFastestMemoryPacker;
+
+unsafe class Program
 {
-    int a1, a2;
-
-    static void Main() => new Program().InstanceMain();
-
-    void InstanceMain()
+    static void Main()
     {
-        new Thread(Stress).Start();
-
-        PinnedMethod(this, []);
-        Console.ReadLine();
+        var a = new A();
+        var bytes = FastestMemoryPacker.Pack(a);
     }
+}
 
-    static void Stress()
-    {
-        for (var i = 0; i < 1000; i++)
-        {
-            byte[] array = new byte[10];
-            for (var o = 0; o < 1000; o++)
-                array = new byte[500];
+class A_
+{
+    public string StringField = "Some string here!";
+    public byte[] ByteArrayField = [0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0xFF, 0xFF];
+}
 
-            Thread.Sleep(array.Length);
-            GC.Collect();
-        }
-    }
+class A : A_
+{
+    public int IntField1 = 0x7080;
+    public ulong LongField = 0xE700660099661818UL;
+    public int IntField2 = 0x0C;
+    public B BField = new B();
+}
 
-    static void PinnedMethod(object @object, byte[] dummyArray)
-    {
-        fixed (byte* dummyArrayPointer = dummyArray)
-        {
-            *&dummyArrayPointer = *(byte**)&@object;
+class B
+{
+    public B() => SelfField = this;
 
-            Thread.Sleep(400);
+    public B SelfField;
+    public C StructField = new();
+}
 
-            for (var i = 0; i < 20; i++)
-            {
-                Thread.Sleep(250);
-                DisplayObject(@object);
-            }
-        }
-    }
+struct C
+{
+    public C() { }
 
-    static void DisplayObject(object @object)
-    {
-        Console.WriteLine($"{*(nint*)&@object:X}");
-    }
-
-    static void TestMethod(byte[] array)
-    {
-        fixed (byte* pointer = array)
-        {
-            Console.WriteLine((nint)pointer);
-        }
-    }
+    public int XValue = 10;
+    public int YValue = 20;
+    public long XYValue = 30;
 }
