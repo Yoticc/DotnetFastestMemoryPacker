@@ -1,30 +1,54 @@
 ﻿using dnlib.DotNet;
+using dnlib.DotNet.Emit;
 
 class Patcher
 {
     public void Execute(ModuleDefMD module)
     {
-        var type = module.Find("DotnetFastestMemoryPacker.FastestMemoryPacker", false);
-
-        SetLocalPinned(type, "IndexOf");
-        SetLocalPinned(type, "Pack");
-
-        static void SetLocalPinned(TypeDef type, string methodName, params string[] localNames)
+        foreach (var type in module.Types)
         {
-            var method = type.Methods.First(method => method.Name == methodName);
-            var locals = method.Body.Variables.Locals;
-
-            foreach (var localName in localNames)
+            foreach (var method in type.Methods)
             {
-                var local = locals.FirstOrDefault(local => local.Name == localName);
-                if (local is not null)
+                if (!method.HasBody)
+                    continue;
+
+                var body = method.Body;
+                if (!body.HasInstructions)
+                    continue;
+
+                var locals = body.Variables.Locals;
+                var instructions = body.Instructions;
+                for (var index = 0; index < instructions.Count; index++)
                 {
-                    var oldTypeSig = local.Type;
-                    if (!oldTypeSig.IsPinned)
+                    var instruction = instructions[index];
+                    if (instruction.IsLdlocOrLdloca())
                     {
-                        var newTypeSig = new PinnedSig(oldTypeSig);
-                        local.Type = newTypeSig;
-                        Console.WriteLine($"Set pinned state for local {localName} for method {methodName}");
+                        var nextInstruction = instructions[index + 1];
+                        if (nextInstruction.OpCode.Code == Code.Call)
+                        {
+                            if (nextInstruction.Operand is not MethodSpec calledMethod)
+                                continue;
+                            
+                            if (calledMethod.Name == "Pinnable")
+                            {
+                                var local = instruction.GetLocal(locals);
+
+                                var oldTypeSig = local.Type;
+                                if (!oldTypeSig.IsPinned)
+                                {
+                                    var newTypeSig = new PinnedSig(oldTypeSig);
+                                    local.Type = newTypeSig;
+                                    Console.WriteLine($"Set pinned state for local '{local.Name}' for method '{method.Name}'");
+                                }
+
+                                Console.WriteLine($"Removed instruction {instructions[index]}");
+                                instructions.RemoveAt(index);
+                                Console.WriteLine($"Removed instruction {instructions[index]}");
+                                instructions.RemoveAt(index);
+
+                                index--;
+                            }
+                        }
                     }
                 }
             }

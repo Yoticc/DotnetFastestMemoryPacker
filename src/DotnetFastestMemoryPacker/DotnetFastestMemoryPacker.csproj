@@ -11,7 +11,12 @@
 
   <Target Name="RunPatcher" AfterTargets="AfterBuild" Condition="'$(Configuration)' == 'Release'">
 	<Exec Command="echo running patcher..." />
-	<Exec Command="start &quot;&quot; &quot;..\..\tools\patcher\bin\Debug\net9.0\patcher.exe&quot;" />
+	<Exec Command="start &quot;&quot; &quot;..\..\tools\patcher\bin\Release\net9.0\patcher.exe&quot;" />
   </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" Private="false" />
+    <ProjectReference Include="..\..\tools\patcher\patcher.csproj" Private="false" />
+  </ItemGroup>
 
 </Project>
