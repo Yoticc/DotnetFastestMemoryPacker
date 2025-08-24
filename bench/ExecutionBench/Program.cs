@@ -4,10 +4,6 @@ using BenchmarkDotNet.Running;
 using ExecutionBench.Benchmarks;
 using System.Reflection;
 
-
-//new Array200WithDifferentInstances().DeserializeFastestMemoryPacker();
-//return;
-
 BenchmarkRunner.Run<Array200WithDifferentInstances>();
 Console.ReadLine();
 

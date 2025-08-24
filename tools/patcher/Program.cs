@@ -3,27 +3,28 @@
 try
 {
     var currentDirectory = Environment.CurrentDirectory;
-
-    while (true)
+    var targetAssemblies = Directory.GetFiles(currentDirectory, "*.dll", SearchOption.AllDirectories);
+    foreach (var targetAssembly in targetAssemblies)
     {
-        if (Path.GetFileName(currentDirectory) == "DotnetFastestMemoryPacker")
-            if (Directory.Exists(Path.Combine(currentDirectory, "src")))
-                break;
+        if (Path.GetFileName(targetAssembly) != "DotnetFastestMemoryPacker.dll")
+            continue;
 
-        currentDirectory = Path.GetDirectoryName(currentDirectory)!;
+        if (targetAssembly.Contains(@"\Debug\"))
+            continue;
+
+        Console.WriteLine($"Target assembly: \"{targetAssembly}\"");
+
+        using var fileStream = new FileStream(targetAssembly, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+
+        var assembly = ModuleDefMD.Load(fileStream);
+
+        new Patcher().Execute(assembly);
+
+        fileStream.SetLength(0);
+        fileStream.Position = 0;
+        assembly.Write(fileStream);
     }
-
-    var targetAssembly = Path.Combine(currentDirectory, @"src\DotnetFastestMemoryPacker\bin\Release\net9.0\DotnetFastestMemoryPacker.dll");
-    using var fileStream = new FileStream(targetAssembly, FileMode.OpenOrCreate, FileAccess.ReadWrite);
-    
-    var assembly = ModuleDefMD.Load(fileStream);
-
-    new Patcher().Execute(assembly);
-
-    fileStream.SetLength(0);
-    fileStream.Position = 0;
-    assembly.Write(fileStream);
-} 
+}
 catch (Exception ex)
 {
     Console.WriteLine(ex);

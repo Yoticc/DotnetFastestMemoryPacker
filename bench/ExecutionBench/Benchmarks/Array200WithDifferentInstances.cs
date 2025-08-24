@@ -39,14 +39,12 @@ public partial class Array200WithDifferentInstances
         MemoryPackSerializer.Serialize(input);
     }
     */
-        
-    /*
+     
     [Benchmark]
     public void SerializeFastestMemoryPacker()
     {
         FastestMemoryPacker.Serialize(input);
-    } 
-    */
+    }
 
     /*
     [Benchmark]

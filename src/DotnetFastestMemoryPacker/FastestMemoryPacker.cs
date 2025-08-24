@@ -337,8 +337,6 @@ public unsafe static class FastestMemoryPacker
 
     static object Deserialize(byte* input, int inputLength, MethodTable* objectMethodTable)
     {
-        var totalSize = inputLength - SizeOf.PackedHeader;
-
         var objectRootsCount = 0;
         Patcher.Pinnable(out ulong[] objectRootsArray);
 
@@ -388,9 +386,6 @@ public unsafe static class FastestMemoryPacker
             Unsafe.InitBlock(objectMethodTables, 0, objectsCount * SizeOf.MethodTable);
         }
 
-        var bytesOffset = 0U;
-        var objectSize = 0U;
-
         objectMethodTables[0] = objectMethodTable;
         for (var objectIndex = 0; objectIndex < objectsCount; objectIndex++)
         {
@@ -399,22 +394,22 @@ public unsafe static class FastestMemoryPacker
             {
                 if (methodTable->IsArray)
                 {
-                    var arrayLength = *(uint*)(input + bytesOffset);
+                    var arrayLength = *(uint*)input;
                     var componentSize = methodTable->ComponentSize;
                     var componentsSize = arrayLength * componentSize;
 
                     var headerSize = methodTable->BaseSize - SizeOf.ObjectHeader;
-                    objectSize = headerSize + componentsSize;
+                    var objectSize = headerSize + componentsSize;
 
                     objects[objectIndex] = @object = GC.AllocateUninitializedArray<byte>((int)(objectSize - SizeOf.ArrayLength));
                     **(MethodTable***)&@object = methodTable;
 
-                    Unsafe.CopyBlockUnaligned(*(byte**)&@object + SizeOf.MethodTable, input + bytesOffset, objectSize);
+                    Unsafe.CopyBlockUnaligned(*(byte**)&@object + SizeOf.MethodTable, input, objectSize);
                     if (methodTable->ContainsGCPointers)
                     {
                         var elementMethodTable = methodTable->ElementType;
 
-                        var objectBody = input + bytesOffset;
+                        var objectBody = input;
                         for (var offset = headerSize; offset < objectSize; offset += SizeOf.Reference)
                         {
                             var elementIdentifier = *(int*)(objectBody + offset);
@@ -428,23 +423,27 @@ public unsafe static class FastestMemoryPacker
                             }
                         }
                     }
+
+                    input += objectSize;
                 }
                 else
                 {
-                    var length = *(uint*)(input + bytesOffset);
-                    objectSize = SizeOf.StringLength + (length << 1);
+                    var length = *(uint*)input;
+                    var objectSize = SizeOf.StringLength + (length << 1);
                     if (length <= 2)
                     {
                         if (length == 0)
                             objects[objectIndex] = string.Empty;
-                        else objects[objectIndex] = new string((char*)(input + bytesOffset + SizeOf.StringLength), 0, (int)length);
+                        else objects[objectIndex] = new string((char*)(input + SizeOf.StringLength), 0, (int)length);
                     }
                     else
                     {
                         objects[objectIndex] = @object = GC.AllocateUninitializedArray<byte>((int)(objectSize - SizeOf.ArrayLength));
                         **(nint**)&@object = typeof(string).TypeHandle.Value;
-                        Unsafe.CopyBlockUnaligned(*(nint**)&@object + 1, input + bytesOffset, objectSize);
+                        Unsafe.CopyBlockUnaligned(*(nint**)&@object + 1, input, objectSize);
                     }
+
+                    input += objectSize;
                 }
             }
             else
@@ -452,13 +451,13 @@ public unsafe static class FastestMemoryPacker
                 objects[objectIndex] = @object = RuntimeHelpers.GetUninitializedObject(Type.GetTypeFromHandle(RuntimeTypeHandle.FromIntPtr((nint)methodTable)));
 
                 var eeClass = methodTable->Class;
-                objectSize = methodTable->BaseSize - eeClass->BaseSizePadding;
+                var objectSize = methodTable->BaseSize - eeClass->BaseSizePadding;
 
-                Unsafe.CopyBlockUnaligned(*(byte**)&@object + SizeOf.MethodTable, input + bytesOffset, objectSize);
+                Unsafe.CopyBlockUnaligned(*(byte**)&@object + SizeOf.MethodTable, input, objectSize);
 
                 if (methodTable->ContainsGCPointers)
                 {
-                    var objectBody = input + bytesOffset;
+                    var objectBody = input;
                     while (true)
                     {
                         var parentMethodTable = methodTable->ParentMethodTable;
@@ -497,8 +496,8 @@ public unsafe static class FastestMemoryPacker
 
                                 if (objectMethodTables[objectIdentifier] is null)
                                 {
-                                    var declaringTypeHandle = RuntimeTypeHandle.FromIntPtr((nint)methodTable);
                                     var fieldHandle = RuntimeFieldHandle.FromIntPtr((nint)fieldDesc);
+                                    var declaringTypeHandle = RuntimeTypeHandle.FromIntPtr((nint)methodTable);
                                     var field = FieldInfo.GetFieldFromHandle(fieldHandle, declaringTypeHandle);
 
                                     var fieldMethodTable = (MethodTable*)field.FieldType.TypeHandle.Value;
@@ -514,9 +513,9 @@ public unsafe static class FastestMemoryPacker
                         eeClass = parentClass;
                     }
                 }
-            }
 
-            bytesOffset += objectSize;
+                input += objectSize;
+            }
         }
 
         for (var rootIndex = 0; rootIndex < objectRootsCount; rootIndex++)
