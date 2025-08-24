@@ -1,4 +1,5 @@
 ﻿using DotnetFastestMemoryPacker;
+using System.Runtime.InteropServices;
 
 unsafe class Program
 {
@@ -7,12 +8,16 @@ unsafe class Program
         var instance = new A();
         var bytes = FastestMemoryPacker.Serialize(instance);
         var unpackedInstance = FastestMemoryPacker.Deserialize<A>(bytes);
+         
+        Console.WriteLine(string.Join(' ', unpackedInstance));
+        var obj = unpackedInstance;
     }
 }
 
 class A_
 {
     public string StringField { get; set; } = "Some string here!";
+    public string[] StringArrayField { get; set; } = ["index: 0", "index: 1"];
     public string EmptyStringField { get; set; } = "";
     public byte[] ByteArrayField { get; set; } = [0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0xFF, 0xFF];
     public byte[][] ByteArrayArrayField { get; set; } = [[0x01, 0x02, 0x03, 0x04], [0x05], [0x06], [0x07]];
@@ -54,4 +59,18 @@ struct C
 class F
 {
     public int Value = 100;
+}
+
+partial class D
+{
+    public int IntValue;
+    public int IntValue2;
+    public long LongValue;
+    public long LongValue2;
+    public short ShortValue;
+    public short ShortValue2;
+    public short ShortValue3;
+    public short ShortValue4;
+    public bool BoolValue;
+    public bool BoolValue2;
 }

@@ -10,12 +10,9 @@ unsafe struct MethodTable
     [FieldOffset(0x04)] public uint BaseSize;
     [FieldOffset(0x08)] uint flags2;
     [FieldOffset(0x10)] public MethodTable* ParentMethodTable;
-    [FieldOffset(0x18)] public void* Module;
     [FieldOffset(0x28)] nint canonMT;
     [FieldOffset(0x30)] public MethodTable* ElementType;
 
-    public uint RID => flags2 >> 8;
-    public uint Token => RID | 0x2000000;
     public bool HasComponentSize => (flags & 0x80000000U) > 0U;
     public bool ContainsGCPointers => (flags & 0x1000000U) > 0U;
     public uint MultiDimensionalArrayRank => (BaseSize >> 3) - 3;
@@ -23,30 +20,4 @@ unsafe struct MethodTable
 
     public EEClass* Class => (EEClass*)((canonMT & 1) == 0 ? canonMT : ((MethodTable*)(canonMT & ~1))->canonMT);
     public MethodTable* CanonicalMethodTable => (MethodTable*)((canonMT & 1) == 0 ? (nint)Unsafe.AsPointer(ref this) : canonMT & ~1);
-
-
-    public bool IsGenericTypeDefinition
-    {
-        get
-        {
-            return (this.flags & 2147483696U) == 48U;
-        }
-    }
-
-    public bool IsConstructedGenericType
-    {
-        get
-        {
-            uint num = this.flags & 2147483696U;
-            return num == 16U || num == 32U;
-        }
-    }
-
-    public bool ContainsGenericVariables
-    {
-        get
-        {
-            return (this.flags & 536870912U) > 0U;
-        }
-    }
 }

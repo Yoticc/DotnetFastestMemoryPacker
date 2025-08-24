@@ -1,16 +1,19 @@
 ﻿using dnlib.DotNet;
-using System.Diagnostics;
 
 try
 {
     var currentDirectory = Environment.CurrentDirectory;
 
-    string targetDirectory;
-    if (Debugger.IsAttached)
-        targetDirectory = Path.GetFullPath(Path.Combine(currentDirectory, @"..\..\..\..\..\src\DotnetFastestMemoryPacker\bin\Release\net9.0"));
-    else targetDirectory = Path.GetFullPath(Path.Combine(currentDirectory, @".\bin\Release\net9.0"));
+    while (true)
+    {
+        if (Path.GetFileName(currentDirectory) == "DotnetFastestMemoryPacker")
+            if (Directory.Exists(Path.Combine(currentDirectory, "src")))
+                break;
 
-    var targetAssembly = Path.Combine(targetDirectory, "DotnetFastestMemoryPacker.dll");
+        currentDirectory = Path.GetDirectoryName(currentDirectory)!;
+    }
+
+    var targetAssembly = Path.Combine(currentDirectory, @"src\DotnetFastestMemoryPacker\bin\Release\net9.0\DotnetFastestMemoryPacker.dll");
     using var fileStream = new FileStream(targetAssembly, FileMode.OpenOrCreate, FileAccess.ReadWrite);
     
     var assembly = ModuleDefMD.Load(fileStream);

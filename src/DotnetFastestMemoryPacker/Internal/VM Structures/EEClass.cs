@@ -1,34 +1,15 @@
-﻿namespace DotnetFastestMemoryPacker.Internal;
+﻿using System.Runtime.InteropServices;
+
+namespace DotnetFastestMemoryPacker.Internal;
+[StructLayout(LayoutKind.Explicit)]
 unsafe struct EEClass
 {
-    void* guidInfo;
-    void* optionalFields;
-    MethodTable* methodTable;
-    FieldDesc* fieldDesc;
-    void* chunks;
-    void* objectHandleDelegateOrComInterfaceType;
-    void* pccwTemplate;
-    int attrClass;
-    int vmFlags;
-    byte normType;
-    byte baseSizePadding;
-    short numInstanceFields;
-    short numMethods;
-    short numStaticFields;
-    short numHandleStatics;
-    short numThreadStaticFields;
-    short numHandleThreadStatics;
-    short numNonVirtualSlots;
-    int nonGCStaticFieldBytes;
-    int nonGCThreadStaticFieldBytes;
+    [FieldOffset(0x10)] public MethodTable* MethodTable;
+    [FieldOffset(0x18)] public FieldDesc* FieldDesc;
+    [FieldOffset(0x40)] public byte NormType;
+    [FieldOffset(0x41)] public byte BaseSizePadding;
+    [FieldOffset(0x42)] public short NumInstanceFields;
 
-    public MethodTable* MethodTable => methodTable;
-    public FieldDesc* FieldDesc => fieldDesc;
-    public CorElementType CorElementType => (CorElementType)normType;
-    public int NumFields => numInstanceFields;
-    public int NumStaticFields => numStaticFields;
-    public int BaseSizePadding => baseSizePadding;
-
-    public bool IsArray => CorElementType is CorElementType.Array or CorElementType.SZArray;
-    public bool IsValueType => CorElementType is CorElementType.ValueType;
+    public bool IsArray => NormType == CorElementType.Array || NormType == CorElementType.SZArray;
+    public bool IsValueType => NormType == CorElementType.ValueType;
 }

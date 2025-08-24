@@ -5,21 +5,16 @@ using Newtonsoft.Json;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace ExecutionBench.Benchmarks;
-public partial class ClassWith10SimpleFields
+public partial class Array200WithOneInstance
 {
-    static readonly Class input = new Class
+    static readonly Class instance = new Class()
     {
-        IntValue = 10,
-        IntValue2 = 20,
-        LongValue = 30,
-        LongValue2 = 40,
-        ShortValue = 50,
-        ShortValue2 = 60,
-        ShortValue3 = 70,
-        ShortValue4 = 80,
-        BoolValue = false,
-        BoolValue2 = true
+        Value1 = 10,
+        Value2 = 20,
+        SomeString = "pmpmpmp mppm hppmmp hppm hpm! hpmhmphmp? phpmhpmhphmp!!",
+        Value3 = 80
     };
+    static readonly Class[] input = Enumerable.Repeat(instance, 200).ToArray();
 
     static readonly string outputNewtonsoft = JsonConvert.SerializeObject(input);
     static readonly string outputSTJ = JsonSerializer.Serialize(input);
@@ -53,39 +48,33 @@ public partial class ClassWith10SimpleFields
     [Benchmark]
     public void DeserializeNewtonsoft()
     {
-        JsonConvert.DeserializeObject<Class>(outputNewtonsoft);
+        JsonConvert.DeserializeObject<Class[]>(outputNewtonsoft);
     }
 
     [Benchmark]
     public void DeserializeSTJ()
     {
-        JsonSerializer.Deserialize<Class>(outputSTJ);
+        JsonSerializer.Deserialize<Class[]>(outputSTJ);
     }
 
     [Benchmark]
     public void DeserializeMemoryPack()
     {
-        MemoryPackSerializer.Deserialize<Class>(outputMP);
+        MemoryPackSerializer.Deserialize<Class[]>(outputMP);
     }
 
     [Benchmark]
     public void DeserializeFastestMemoryPacker()
     {
-        FastestMemoryPacker.Deserialize<Class>(outputFMP);
+        FastestMemoryPacker.Deserialize<Class[]>(outputFMP);
     }
 
     [MemoryPackable]
-    partial class Class
+    public partial class Class
     {
-        public int IntValue { get; set; }
-        public int IntValue2 { get; set; }
-        public long LongValue { get; set; }
-        public long LongValue2 { get; set; }
-        public short ShortValue { get; set; }
-        public short ShortValue2 { get; set; }
-        public short ShortValue3 { get; set; }
-        public short ShortValue4 { get; set; }
-        public bool BoolValue { get; set; }
-        public bool BoolValue2 { get; set; }
+        public int Value1 { get; set; }
+        public int Value2 { get; set; }
+        public string? SomeString { get; set; }
+        public int Value3 { get; set; }
     }
 }

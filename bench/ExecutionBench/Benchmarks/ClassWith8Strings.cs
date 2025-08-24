@@ -5,20 +5,18 @@ using Newtonsoft.Json;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace ExecutionBench.Benchmarks;
-public partial class ClassWith10SimpleFields
+public partial class ClassWith8Strings
 {
     static readonly Class input = new Class
     {
-        IntValue = 10,
-        IntValue2 = 20,
-        LongValue = 30,
-        LongValue2 = 40,
-        ShortValue = 50,
-        ShortValue2 = 60,
-        ShortValue3 = 70,
-        ShortValue4 = 80,
-        BoolValue = false,
-        BoolValue2 = true
+        String1 = "⣿⣿⣿⣿⡇⢀⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⠄⠄⢸⣿⣿⣿⣿",
+        String2 = "⣿⣿⣿⣿⣇⣼⣿⣿⠿⠶⠙⣿⡟⠡⣴⣿⣽⣿⣧⠄⢸⣿⣿⣿⣿",
+        String3 = "⣿⣿⣿⣿⣿⣾⣿⣿⣟⣭⣾⣿⣷⣶⣶⣴⣶⣿⣿⢄⣿⣿⣿⣿⣿",
+        String4 = "⣿⣿⣿⣿⣿⣿⣿⣿⡟⣩⣿⣿⣿⡏⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿",
+        String5 = "⣿⣿⣿⣿⣿⣿⣹⡋⠘⠷⣦⣀⣠⡶⠁⠈⠁⠄⣿⣿⣿⣿⣿⣿⣿",
+        String6 = "⣿⣿⣿⣿⣿⣿⣍⠃⣴⣶⡔⠒⠄⣠⢀⠄⠄⠄⡨⣿⣿⣿⣿⣿⣿",
+        String7 = "⣿⣿⣿⣿⣿⣿⣿⣦⡘⠿⣷⣿⠿⠟⠃⠄⠄⣠⡇⠈⠻⣿⣿⣿⣿",
+        String8 = "⣿⣿⣿⣿⡿⠟⠋⢁⣷⣠⠄⠄⠄⠄⣀⣠⣿⠄⣀⠄⠄⣀⣿⣿⣿"
     };
 
     static readonly string outputNewtonsoft = JsonConvert.SerializeObject(input);
@@ -77,15 +75,13 @@ public partial class ClassWith10SimpleFields
     [MemoryPackable]
     partial class Class
     {
-        public int IntValue { get; set; }
-        public int IntValue2 { get; set; }
-        public long LongValue { get; set; }
-        public long LongValue2 { get; set; }
-        public short ShortValue { get; set; }
-        public short ShortValue2 { get; set; }
-        public short ShortValue3 { get; set; }
-        public short ShortValue4 { get; set; }
-        public bool BoolValue { get; set; }
-        public bool BoolValue2 { get; set; }
+        public string String1 { get; set; }
+        public string String2 { get; set; }
+        public string String3 { get; set; }
+        public string String4 { get; set; }
+        public string String5 { get; set; }
+        public string String6 { get; set; }
+        public string String7 { get; set; }
+        public string String8 { get; set; }
     }
 }

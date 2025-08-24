@@ -5,6 +5,12 @@ class Patcher
 {
     public void Execute(ModuleDefMD module)
     {
+        HandlePinned(module);
+        HandleShouldBeTrimmed(module);
+    }
+
+    void HandlePinned(ModuleDefMD module)
+    {
         foreach (var type in module.Types)
         {
             foreach (var method in type.Methods)
@@ -28,7 +34,7 @@ class Patcher
                         {
                             if (nextInstruction.Operand is not MethodSpec calledMethod)
                                 continue;
-                            
+
                             if (calledMethod.Name == "Pinnable")
                             {
                                 var local = instruction.GetLocal(locals);
@@ -52,6 +58,22 @@ class Patcher
                     }
                 }
             }
+        }
+    }
+
+    void HandleShouldBeTrimmed(ModuleDefMD module)
+    {
+        var types = module.Types;
+        for (var typeIndex = 0; typeIndex < types.Count; typeIndex++)
+        {
+            var type = types[typeIndex];
+            var attributes = type.CustomAttributes;
+            foreach (var attribute in attributes)
+                if (attribute.AttributeType.Name == "ShouldBeTrimmedAttribute")
+                {
+                    module.Types.RemoveAt(typeIndex--);
+                    Console.WriteLine($"Removed ShouldBeTrimmed type {type.FullName}");
+                }
         }
     }
 }

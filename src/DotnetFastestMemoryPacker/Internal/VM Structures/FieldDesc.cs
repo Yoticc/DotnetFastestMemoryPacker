@@ -1,18 +1,15 @@
-﻿namespace DotnetFastestMemoryPacker.Internal;
+﻿using System.Runtime.InteropServices;
+
+namespace DotnetFastestMemoryPacker.Internal;
+
+[StructLayout(LayoutKind.Explicit)]
 unsafe struct FieldDesc
 {
-    MethodTable* methodTableOfEnclosingClass;
-    int dword1;
-    int dword2;
+    [FieldOffset(0x08)] uint dword1;
+    [FieldOffset(0x0C)] uint dword2;
 
-    public MethodTable* DefinedType => methodTableOfEnclosingClass;
-
-    public int RID => dword1 & (1 << 24) - 1;
     public bool IsStatic => (dword1 & 1 << 24) > 0;
-    public int Protection => (dword2 >> 3) & (1 << 3) - 1;
 
-    public int Offset => dword2 & (1 << 21) - 1;
-    public CorElementType Type => (CorElementType)((dword2 >> 27) & (1 << 5) - 1);
-
-    public int Token => RID | 0x4000000;
+    public uint Offset => dword2 & (1 << 21) - 1;
+    public byte Type => (byte)((dword2 >> 27) & (1 << 5) - 1);
 }

@@ -4,9 +4,20 @@
 	<TargetFramework>net9.0</TargetFramework>
 	<ImplicitUsings>enable</ImplicitUsings>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	<Nullable>enable</Nullable>
+	<Nullable>disable</Nullable>
 	<DisableRuntimeMarshallingAttribute>true</DisableRuntimeMarshallingAttribute>
-	<SkipInitAllocAttribute>true</SkipInitAllocAttribute>
+	<NoWin32Manifest>true</NoWin32Manifest>
+	<ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <IsAotCompatible>False</IsAotCompatible>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <IsAotCompatible>False</IsAotCompatible>
   </PropertyGroup>
 
   <Target Name="RunPatcher" AfterTargets="AfterBuild" Condition="'$(Configuration)' == 'Release'">
@@ -16,7 +27,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" Private="false" />
-    <ProjectReference Include="..\..\tools\patcher\patcher.csproj" Private="false" />
   </ItemGroup>
 
 </Project>
