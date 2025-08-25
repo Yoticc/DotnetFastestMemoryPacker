@@ -9,59 +9,32 @@ using System.Reflection;
 namespace DotnetFastestMemoryPacker;
 public unsafe static class FastestMemoryPacker
 {
-    const uint InitialObjectsCapacity = 1 << 8;
-    const uint InitialObjectRootsCapacity = 1 << 9;
+#if DEBUG // so the code shoots in the foot 148.2% (+-0.2) faster
+    const uint InitialObjectsCapacity = 1 << 2;
+    const uint InitialObjectRootsCapacity = 1 << 3;
+#else
+    const uint InitialObjectsCapacity = 1 << 10;
+    const uint InitialObjectRootsCapacity = 1 << 12;
+#endif
 
     public static byte[] Serialize(object objectToSerialize)
     {
         if (objectToSerialize is null)
             return [];
 
-        var methodTable = **(MethodTable***)&objectToSerialize;
-
+        uint objectsCount = 1U;
         Patcher.Pinnable(out object @object);
         Patcher.Pinnable(out byte[] bytesArray);
 
+        @object = objectToSerialize;
+        var methodTable = **(MethodTable***)&@object;
+
         if (!methodTable->ContainsGCPointers)
-        {
-            @object = objectToSerialize;
-
-            uint bytesCount;
-            if (methodTable->HasComponentSize)
-            {
-                if (methodTable->IsArray)
-                {
-                    var arrayLength = *(uint*)(*(nint*)&@object + SizeOf.MethodTable);
-                    var componentsSize = arrayLength * methodTable->ComponentSize;
-                    var headerSize = methodTable->BaseSize - SizeOf.ObjectHeader;
-                    bytesCount = headerSize + componentsSize;
-                }
-                else
-                {
-                    var stringLength = *(uint*)(*(nint*)&@object + SizeOf.MethodTable);
-                    bytesCount = SizeOf.StringLength + (stringLength << 1);
-                }
-            }
-            else
-            {
-                var eeClass = methodTable->Class;
-                bytesCount = methodTable->BaseSize - eeClass->BaseSizePadding;
-            }
-
-            bytesCount += SizeOf.PackedHeader;
-            bytesArray = GC.AllocateUninitializedArray<byte>((int)bytesCount);
-
-            var destination = (byte*)(*(nint**)&bytesArray + 2) + SizeOf.PackedHeader;
-            var source = (void*)(*(nint*)&@object + SizeOf.MethodTable);
-            Unsafe.CopyBlock(destination, source, bytesCount);
-
-            return bytesArray;
-        }
+            return SerializeWithNoGCPointers(methodTable, @object);
 
         byte* bytes;
-        uint objectsCount = 1U;
-        uint objectsCapacity = InitialObjectsCapacity;
         object* objects;
+        uint objectsCapacity = InitialObjectsCapacity;
         Patcher.Pinnable(out object fieldObject);
         Patcher.Pinnable(out object[] objectsArray);
 
@@ -75,7 +48,7 @@ public unsafe static class FastestMemoryPacker
         Patcher.Pinnable(out ulong[] objectRootsArray);
         Patcher.Pinnable(out ulong[] newObjectRootsArray);
 
-        var stackallocatedObjects = stackalloc byte[(int)(objectsCapacity * sizeof(object) + SizeOf.ObjectHeader)];
+        var stackallocatedObjects = stackalloc byte[(int)(objectsCapacity * sizeof(object) + SizeOf.ObjectHeader + SizeOf.ArrayLength)];
         stackallocatedObjects += SizeOf.GCHeader;
         *(MethodTable**)stackallocatedObjects = (MethodTable*)typeof(object[]).TypeHandle.Value;
         *(nuint*)(stackallocatedObjects + SizeOf.MethodTable) = objectsCapacity;
@@ -112,7 +85,7 @@ public unsafe static class FastestMemoryPacker
                             /* ========= function #1 =========*/
                             if (fieldObject is not null)
                             {
-                                var index = new Span<nint>(objects, (int)objectsCount).IndexOf(*(nint*)&fieldObject);
+                                var index = new Span<nint>(objects, (int)objectsCount).LastIndexOf(*(nint*)&fieldObject);
                                 if (index == -1)
                                 {
                                     index = (int)objectsCount;
@@ -127,7 +100,7 @@ public unsafe static class FastestMemoryPacker
                                         newObjectSizesArray = GC.AllocateUninitializedArray<uint>((int)objectsCapacity);
                                         var source = objectSizes;
                                         var destination = objectSizes = (uint*)(*(nint**)&newObjectSizesArray + 2);
-                                        Unsafe.CopyBlock(destination, source, objectsCapacity);
+                                        Unsafe.CopyBlock(destination, source, objectsCount * sizeof(uint));
                                         objectSizesArray = newObjectSizesArray;
                                     }
                                 }
@@ -139,7 +112,7 @@ public unsafe static class FastestMemoryPacker
                                     newObjectRootsArray = GC.AllocateUninitializedArray<ulong>((int)(objectRootsCapacity <<= 1));
                                     var source = objectRoots;
                                     var destination = objectRoots = (ulong*)(*(nint**)&newObjectRootsArray + 2);
-                                    Unsafe.CopyBlock(destination, source, objectRootsCount);
+                                    Unsafe.CopyBlock(destination, source, objectRootsCount * sizeof(ulong));
                                     objectRootsArray = newObjectRootsArray;
                                 }
                             }
@@ -196,7 +169,7 @@ public unsafe static class FastestMemoryPacker
                             /* ========= function #1 =========*/
                             if (fieldObject is not null)
                             {
-                                var index = new Span<nint>(objects, (int)objectsCount).IndexOf(*(nint*)&fieldObject);
+                                var index = new Span<nint>(objects, (int)objectsCount).LastIndexOf(*(nint*)&fieldObject);
                                 if (index == -1)
                                 {
                                     index = (int)objectsCount;
@@ -211,7 +184,7 @@ public unsafe static class FastestMemoryPacker
                                         newObjectSizesArray = GC.AllocateUninitializedArray<uint>((int)objectsCapacity);
                                         var source = objectSizes;
                                         var destination = objectSizes = (uint*)(*(nint**)&newObjectSizesArray + 2);
-                                        Unsafe.CopyBlock(destination, source, objectsCapacity);
+                                        Unsafe.CopyBlock(destination, source, objectsCount * sizeof(uint));
                                         objectSizesArray = newObjectSizesArray;
                                     }
                                 }
@@ -223,7 +196,7 @@ public unsafe static class FastestMemoryPacker
                                     newObjectRootsArray = GC.AllocateUninitializedArray<ulong>((int)(objectRootsCapacity <<= 1));
                                     var source = objectRoots;
                                     var destination = objectRoots = (ulong*)(*(nint**)&newObjectRootsArray + 2);
-                                    Unsafe.CopyBlock(destination, source, objectRootsCount);
+                                    Unsafe.CopyBlock(destination, source, objectRootsCount * sizeof(ulong));
                                     objectRootsArray = newObjectRootsArray;
                                 }
                             }
@@ -265,6 +238,41 @@ public unsafe static class FastestMemoryPacker
         return bytesArray;
     }
 
+    static byte[] SerializeWithNoGCPointers(MethodTable* methodTable, object @object)
+    {
+        Patcher.Pinnable(out byte[] bytesArray);
+
+        uint bytesCount;
+        if (methodTable->HasComponentSize)
+        {
+            if (methodTable->IsArray)
+            {
+                var arrayLength = *(uint*)(*(nint*)&@object + SizeOf.MethodTable);
+                var componentsSize = arrayLength * methodTable->ComponentSize;
+                var headerSize = methodTable->BaseSize - SizeOf.ObjectHeader;
+                bytesCount = headerSize + componentsSize;
+            }
+            else
+            {
+                var stringLength = *(uint*)(*(nint*)&@object + SizeOf.MethodTable);
+                bytesCount = SizeOf.StringLength + (stringLength << 1);
+            }
+        }
+        else
+        {
+            bytesCount = methodTable->BaseSize - methodTable->Class->BaseSizePadding;
+        }
+
+        bytesArray = GC.AllocateUninitializedArray<byte>((int)(bytesCount + SizeOf.PackedHeader));
+        var bytes = (byte*)(*(nint**)&bytesArray + 2);
+
+        var destination = bytes + SizeOf.PackedHeader;
+        var source = (void*)(*(nint*)&@object + SizeOf.MethodTable);
+        Unsafe.CopyBlock(destination, source, bytesCount);
+
+        return bytesArray;
+    }
+
     public static T Deserialize<T>(byte[] bytesToDeserialize)
     {
         if (bytesToDeserialize.Length == 0)
@@ -273,66 +281,67 @@ public unsafe static class FastestMemoryPacker
         var type = typeof(T);
         var methodTable = (MethodTable*)type.TypeHandle.Value;
 
-        Patcher.Pinnable(out object @object);
         Patcher.Pinnable(out byte[] inputArray);
         inputArray = bytesToDeserialize;
-
         var input = (byte*)(*(nint**)&inputArray + 2);
 
         if (!methodTable->ContainsGCPointers)
+            return (T)DeserializeWithNoGCPointers(input, type, methodTable);
+
+        return (T)Deserialize(input, inputArray.Length, methodTable);
+    }
+
+    static object DeserializeWithNoGCPointers(byte* input, Type type, MethodTable* methodTable)
+    {
+        Patcher.Pinnable(out object @object);
+
+        input += SizeOf.PackedHeader;
+
+        if (methodTable->HasComponentSize)
         {
-            input += SizeOf.PackedHeader;
-
-            if (methodTable->HasComponentSize)
+            if (methodTable->IsArray)
             {
-                if (methodTable->IsArray)
-                {
-                    var arrayLength = *(uint*)input;
-                    var componentSize = methodTable->ComponentSize;
-                    var componentsSize = arrayLength * componentSize;
-                    var headerSize = methodTable->BaseSize - SizeOf.ObjectHeader;
-                    var objectSize = headerSize + componentsSize;
+                var arrayLength = *(uint*)input;
+                var componentSize = methodTable->ComponentSize;
+                var componentsSize = arrayLength * componentSize;
+                var headerSize = methodTable->BaseSize - SizeOf.ObjectHeader;
+                var objectSize = headerSize + componentsSize;
 
-                    @object = GC.AllocateUninitializedArray<byte>((int)(objectSize - SizeOf.ArrayLength));
-                    **(MethodTable***)&@object = methodTable;
+                @object = GC.AllocateUninitializedArray<byte>((int)(objectSize - SizeOf.ArrayLength));
+                **(MethodTable***)&@object = methodTable;
 
-                    // only for x64. use CopyBlockUnaligned for x32
-                    Unsafe.CopyBlock(*(byte**)&@object + SizeOf.MethodTable, input, objectSize);
-                }
-                else
-                {
-                    var length = *(uint*)input;
-                    if (length <= 2)
-                    {
-                        if (length == 0)
-                            @object = string.Empty;
-                        else @object = new string((char*)(input + SizeOf.StringLength), 0, (int)length);
-                    }
-                    else
-                    {
-                        var objectSize = SizeOf.StringLength + (length << 1);
-                        @object = GC.AllocateUninitializedArray<byte>((int)(objectSize - SizeOf.ArrayLength));
-
-                        **(nint**)&@object = typeof(string).TypeHandle.Value;
-                        Unsafe.CopyBlock(*(nint**)&@object + 1, input, objectSize);
-                    }
-                }
+                // only for x64. use CopyBlockUnaligned for x32
+                Unsafe.CopyBlock(*(byte**)&@object + SizeOf.MethodTable, input, objectSize);
             }
             else
             {
-                @object = RuntimeHelpers.GetUninitializedObject(type);
+                var length = *(uint*)input;
+                if (length <= 2)
+                {
+                    if (length == 0)
+                        @object = string.Empty;
+                    else @object = new string((char*)(input + SizeOf.StringLength), 0, (int)length);
+                }
+                else
+                {
+                    var objectSize = SizeOf.StringLength + (length << 1);
+                    @object = GC.AllocateUninitializedArray<byte>((int)(objectSize - SizeOf.ArrayLength));
 
-                var eeClass = methodTable->Class;
-                var objectSize = methodTable->BaseSize - eeClass->BaseSizePadding;
-                Unsafe.CopyBlock(*(byte**)&@object + SizeOf.MethodTable, input, objectSize);
+                    **(nint**)&@object = typeof(string).TypeHandle.Value;
+                    Unsafe.CopyBlock(*(nint**)&@object + 1, input, objectSize);
+                }
             }
         }
         else
         {
-            @object = Deserialize(input, inputArray.Length, methodTable);
+            @object = RuntimeHelpers.GetUninitializedObject(type);
+
+            var eeClass = methodTable->Class;
+            var objectSize = methodTable->BaseSize - eeClass->BaseSizePadding;
+            Unsafe.CopyBlock(*(byte**)&@object + SizeOf.MethodTable, input, objectSize);
         }
 
-        return (T)@object;
+        return @object;
     }
 
     static object Deserialize(byte* input, int inputLength, MethodTable* objectMethodTable)
@@ -349,11 +358,11 @@ public unsafe static class FastestMemoryPacker
         Patcher.Pinnable(out object fieldObject);
 
         var packedHeader = *(ulong*)input;
-        input += SizeOf.PackedHeader;
         var objectsCount = (uint)(packedHeader & ~0u);
-        var objectRootsCapacity = (uint)(packedHeader << 32);
+        var objectRootsCapacity = (uint)(packedHeader >> 32);
+        input += SizeOf.PackedHeader;
         
-        var stackallocatedObjects = stackalloc byte[(int)(InitialObjectsCapacity * sizeof(object) + SizeOf.ObjectHeader)];
+        var stackallocatedObjects = stackalloc byte[(int)(InitialObjectsCapacity * sizeof(object) + SizeOf.ObjectHeader + SizeOf.ArrayLength)];
         if (objectsCount > InitialObjectsCapacity)
         {
             objectsArray = GC.AllocateUninitializedArray<object>((int)objectsCount);
@@ -530,7 +539,7 @@ public unsafe static class FastestMemoryPacker
         return objects[0];
     }
 
-    public static byte[] SerializeUnmanaged<T>(T value) where T : unmanaged
+    public static byte[] SerializeUnmanaged<T>(in T value) where T : unmanaged
     {
         Patcher.Pinnable(out byte[] bytesArray);
         bytesArray = GC.AllocateUninitializedArray<byte>(sizeof(T));
@@ -549,11 +558,16 @@ public unsafe static class FastestMemoryPacker
         return Unsafe.Read<T>((byte*)(*(nint**)&bytesArray + 2));
     }
 
-    public static void DeserializeUnmanaged<T>(byte[] bytes, T* pvalue) where T : unmanaged
+    public static void DeserializeUnmanaged<T>(byte[] bytes, ref T value) where T : unmanaged
     {
         Patcher.Pinnable(out byte[] bytesArray);
         bytesArray = bytes;
 
-        Unsafe.Copy(ref Unsafe.AsRef<T>(pvalue), (byte*)(*(nint**)&bytesArray + 2));
+        Unsafe.Copy(ref value, (byte*)(*(nint**)&bytesArray + 2));
+    }
+
+    public static void DeserializeUnmanaged<T>(byte[] bytes, T* pvalue) where T : unmanaged
+    {
+        DeserializeUnmanaged(bytes, ref Unsafe.AsRef<T>(pvalue));
     }
 }

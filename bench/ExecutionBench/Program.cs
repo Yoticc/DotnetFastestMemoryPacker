@@ -1,15 +1,6 @@
 ﻿using BenchmarkDotNet.Configs;
-using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
-using ExecutionBench.Benchmarks;
 using System.Reflection;
-
-BenchmarkRunner.Run<Array200WithDifferentInstances>();
-Console.ReadLine();
-
-return;
-
-Console.ReadLine();
 
 var benchmarksConfig =
     ManualConfig.Create(DefaultConfig.Instance)
@@ -23,3 +14,4 @@ BenchmarkRunner.Run(benchmarks);
 
 Console.WriteLine($"All benchmarks were passed!");
 Console.ReadLine();
+

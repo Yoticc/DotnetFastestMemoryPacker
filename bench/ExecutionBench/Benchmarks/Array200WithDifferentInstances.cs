@@ -20,7 +20,6 @@ public partial class Array200WithDifferentInstances
     static readonly byte[] outputMP = MemoryPackSerializer.Serialize(input);
     static readonly byte[] outputFMP = FastestMemoryPacker.Serialize(input);
 
-    /*
     [Benchmark]
     public void SerializeNewtonsoft()
     {
@@ -38,7 +37,6 @@ public partial class Array200WithDifferentInstances
     {
         MemoryPackSerializer.Serialize(input);
     }
-    */
      
     [Benchmark]
     public void SerializeFastestMemoryPacker()
@@ -46,7 +44,6 @@ public partial class Array200WithDifferentInstances
         FastestMemoryPacker.Serialize(input);
     }
 
-    /*
     [Benchmark]
     public void DeserializeNewtonsoft()
     {
@@ -64,7 +61,6 @@ public partial class Array200WithDifferentInstances
     {
         MemoryPackSerializer.Deserialize<Class[]>(outputMP);
     }
-    */
 
     [Benchmark]
     public void DeserializeFastestMemoryPacker()

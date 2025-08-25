@@ -5,15 +5,15 @@ VisualStudioVersion = 17.14.36401.2
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotnetFastestMemoryPacker", "src\DotnetFastestMemoryPacker\DotnetFastestMemoryPacker.csproj", "{F1D610D8-E568-495D-AB9F-29B27A7FE040}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Console", "tools\Console\Console.csproj", "{FF8F745F-F8DC-47DB-8FFF-9C8D8F768BB5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Console", "tool\Console\Console.csproj", "{FF8F745F-F8DC-47DB-8FFF-9C8D8F768BB5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "patcher", "tools\patcher\patcher.csproj", "{74D7A89B-F915-4DCD-8BEB-076DF04F5779}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "patcher", "tool\patcher\patcher.csproj", "{74D7A89B-F915-4DCD-8BEB-076DF04F5779}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{36BBE5EF-E689-473E-8A6D-2E895C3D11CE}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{36BBE5EF-E689-473E-8A6D-2E895C3D11CE}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{66970367-6531-436C-B670-8652DE683A7B}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tool", "tool", "{66970367-6531-436C-B670-8652DE683A7B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ref", "ref", "{B3C16674-883C-4E98-9C4D-1C35EDD966BE}"
 EndProject
@@ -22,6 +22,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bench", "bench", "{EA435CF7-1C5D-4296-AD31-D538ABE926F0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExecutionBench", "bench\ExecutionBench\ExecutionBench.csproj", "{CCB142BF-250C-470B-BFB9-40DCB1EE494B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotnetFastestMemoryPacker.Tests", "test\DotnetFastestMemoryPacker.Tests\DotnetFastestMemoryPacker.Tests.csproj", "{B43D39E7-6E26-1ECC-1076-E10F120F17B0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -49,6 +51,10 @@ Global
 		{CCB142BF-250C-470B-BFB9-40DCB1EE494B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CCB142BF-250C-470B-BFB9-40DCB1EE494B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CCB142BF-250C-470B-BFB9-40DCB1EE494B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B43D39E7-6E26-1ECC-1076-E10F120F17B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B43D39E7-6E26-1ECC-1076-E10F120F17B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B43D39E7-6E26-1ECC-1076-E10F120F17B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B43D39E7-6E26-1ECC-1076-E10F120F17B0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -59,6 +65,7 @@ Global
 		{74D7A89B-F915-4DCD-8BEB-076DF04F5779} = {66970367-6531-436C-B670-8652DE683A7B}
 		{A3D11CF5-0CCB-4AE0-B5F2-6C0AE73689B7} = {B3C16674-883C-4E98-9C4D-1C35EDD966BE}
 		{CCB142BF-250C-470B-BFB9-40DCB1EE494B} = {EA435CF7-1C5D-4296-AD31-D538ABE926F0}
+		{B43D39E7-6E26-1ECC-1076-E10F120F17B0} = {36BBE5EF-E689-473E-8A6D-2E895C3D11CE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {333818EC-983A-48C6-9E6F-890C1D00E457}

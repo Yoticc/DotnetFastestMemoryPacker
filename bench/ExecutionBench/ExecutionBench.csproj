@@ -14,11 +14,11 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
-  <ItemGroup>
-	  <Reference Include="DotnetFastestMemoryPacker" Condition="'$(Configuration)' == 'Release'">
-		  <HintPath>..\..\src\DotnetFastestMemoryPacker\bin\Release\net9.0\DotnetFastestMemoryPacker.dll</HintPath>
-	  </Reference>
-      <ProjectReference Include="..\..\src\DotnetFastestMemoryPacker\DotnetFastestMemoryPacker.csproj" Condition="'$(Configuration)' == 'Debug'"/>
-  </ItemGroup>
+	<ItemGroup>
+		<Reference Include="DotnetFastestMemoryPacker" Condition="'$(Configuration)' == 'Release'">
+			<HintPath>..\..\src\DotnetFastestMemoryPacker\bin\Release\net9.0\DotnetFastestMemoryPacker.dll</HintPath>
+		</Reference>
+		<ProjectReference Include="..\..\src\DotnetFastestMemoryPacker\DotnetFastestMemoryPacker.csproj" Condition="'$(Configuration)' == 'Debug'"/>
+	</ItemGroup>
 
 </Project>
