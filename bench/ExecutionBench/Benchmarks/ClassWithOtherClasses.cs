@@ -7,7 +7,7 @@ using JsonSerializer = System.Text.Json.JsonSerializer;
 namespace ExecutionBench.Benchmarks;
 public partial class ClassWithOtherClasses
 {
-    static readonly Struct4 struct4 = new Struct4
+    static readonly Class4 class4 = new Class4
     {
         Value1 = 901327461849171L,
         Value2 = 524381661529101L,
@@ -17,34 +17,34 @@ public partial class ClassWithOtherClasses
         Value6 = 641397561619291L
     };
 
-    static readonly Struct3 struct3 = new Struct3
+    static readonly Class3 class3 = new Class3
     {
-        Struct4 = struct4,
-        Struct42 = struct4,
+        Class4 = class4,
+        Class42 = class4,
         Value1 = false,
         Value2 = false
     };
 
-    static readonly Struct2 struct2 = new Struct2
+    static readonly Class2 class2 = new Class2
     {
-        Struct3 = struct3,
-        Struct4 = struct4,
+        Class3 = class3,
+        Class4 = class4,
         Value1 = 2947928748,
         Value2 = 24987
     };
 
-    static readonly Struct1 struct1 = new Struct1
+    static readonly Class1 class1 = new Class1
     {
-        Struct2 = struct2,
-        Struct3 = struct3,
+        Class2 = class2,
+        Class3 = class3,
         Value1 = 80,
         Value2 = 2908744792,
         Value3 = 299403920
     };
 
-    static readonly RootStruct input = new RootStruct
+    static readonly RootClass input = new RootClass
     {
-        Struct1 = struct1,
+        Struct1 = class1,
         Value1 = 0xB00B1E3,
         Value2 = 0xDEAD40E
     };
@@ -54,92 +54,100 @@ public partial class ClassWithOtherClasses
     static readonly byte[] outputMP = MemoryPackSerializer.Serialize(input);
     static readonly byte[] outputFMP = FastestMemoryPacker.Serialize(input);
 
-    [Benchmark]
-    public void SerializeNewtonsoft()
+    [BenchmarkClass]
+    public class Serialize
     {
-        JsonConvert.SerializeObject(input);
+        [Benchmark]
+        public void SerializeNewtonsoft()
+        {
+            JsonConvert.SerializeObject(input);
+        }
+
+        [Benchmark]
+        public void SerializeSTJ()
+        {
+            JsonSerializer.Serialize(input);
+        }
+
+        [Benchmark]
+        public void SerializeMemoryPack()
+        {
+            MemoryPackSerializer.Serialize(input);
+        }
+
+        [Benchmark(Baseline = true)]
+        public void SerializeFastestMemoryPacker()
+        {
+            FastestMemoryPacker.Serialize(input);
+        }
     }
 
-    [Benchmark]
-    public void SerializeSTJ()
+    [BenchmarkClass]
+    public class Deserialize
     {
-        JsonSerializer.Serialize(input);
-    }
+        [Benchmark]
+        public void DeserializeNewtonsoft()
+        {
+            JsonConvert.DeserializeObject<RootClass>(outputNewtonsoft);
+        }
 
-    [Benchmark]
-    public void SerializeMemoryPack()
-    {
-        MemoryPackSerializer.Serialize(input);
-    }
+        [Benchmark]
+        public void DeserializeSTJ()
+        {
+            JsonSerializer.Deserialize<RootClass>(outputSTJ);
+        }
 
-    [Benchmark]
-    public void SerializeFastestMemoryPacker()
-    {
-        FastestMemoryPacker.Serialize(input);
-    }
+        [Benchmark]
+        public void DeserializeMemoryPack()
+        {
+            MemoryPackSerializer.Deserialize<RootClass>(outputMP);
+        }
 
-    [Benchmark]
-    public void DeserializeNewtonsoft()
-    {
-        JsonConvert.DeserializeObject<RootStruct>(outputNewtonsoft);
-    }
-
-    [Benchmark]
-    public void DeserializeSTJ()
-    {
-        JsonSerializer.Deserialize<RootStruct>(outputSTJ);
-    }
-
-    [Benchmark]
-    public void DeserializeMemoryPack()
-    {
-        MemoryPackSerializer.Deserialize<RootStruct>(outputMP);
-    }
-
-    [Benchmark]
-    public void DeserializeFastestMemoryPacker()
-    {
-        FastestMemoryPacker.Deserialize<RootStruct>(outputFMP);
+        [Benchmark(Baseline = true)]
+        public void DeserializeFastestMemoryPacker()
+        {
+            FastestMemoryPacker.Deserialize<RootClass>(outputFMP);
+        }
     }
 
     [MemoryPackable]
-    public partial class RootStruct
+    public partial class RootClass
     {
         public int Value1 { get; set; }
         public int Value2 { get; set; }
-        public Struct1 Struct1 { get; set; }
+        public Class1 Struct1 { get; set; }
     }
 
     [MemoryPackable]
-    public partial class Struct1
+    public partial class Class1
     {
         public int Value1 { get; set; }
         public long Value2 { get; set; }
         public long Value3 { get; set; }
-        public Struct2 Struct2 { get; set; }
-        public Struct3 Struct3 { get; set; }
+        public Class2 Class2 { get; set; }
+        public Class3 Class3 { get; set; }
     }
 
     [MemoryPackable]
-    public partial class Struct2
+    public partial class Class2
     {
         public long Value1 { get; set; }
         public long Value2 { get; set; }
-        public Struct3 Struct3 { get; set; }
-        public Struct4 Struct4 { get; set; }
+        public Class3 Class3 { get; set; }
+        public Class4 Class4 { get; set; }
     }
 
     [MemoryPackable]
-    public partial class Struct3
+    public partial class Class3
     {
         public bool Value1 { get; set; }
         public bool Value2 { get; set; }
-        public Struct4 Struct4 { get; set; }
-        public Struct4 Struct42 { get; set; }
+        public Class4 Class4 { get; set; }
+        public Class4 Class42 { get; set; }
     }
 
     [MemoryPackable]
-    public partial class Struct4
+    public partial class Class4
     {
         public long Value1 { get; set; }
         public long Value2 { get; set; }

@@ -21,52 +21,60 @@ public partial class Array200WithOneInstance
     static readonly byte[] outputMP = MemoryPackSerializer.Serialize(input);
     static readonly byte[] outputFMP = FastestMemoryPacker.Serialize(input);
 
-    [Benchmark]
-    public void SerializeNewtonsoft()
+    [BenchmarkClass]
+    public class Serialize
     {
-        JsonConvert.SerializeObject(input);
+        [Benchmark]
+        public void SerializeNewtonsoft()
+        {
+            JsonConvert.SerializeObject(input);
+        }
+
+        [Benchmark]
+        public void SerializeSTJ()
+        {
+            JsonSerializer.Serialize(input);
+        }
+
+        [Benchmark]
+        public void SerializeMemoryPack()
+        {
+            MemoryPackSerializer.Serialize(input);
+        }
+
+        [Benchmark(Baseline = true)]
+        public void SerializeFastestMemoryPacker()
+        {
+            FastestMemoryPacker.Serialize(input);
+        }
     }
 
-    [Benchmark]
-    public void SerializeSTJ()
+    [BenchmarkClass]
+    public class Deserialize
     {
-        JsonSerializer.Serialize(input);
-    }
+        [Benchmark]
+        public void DeserializeNewtonsoft()
+        {
+            JsonConvert.DeserializeObject<Class[]>(outputNewtonsoft);
+        }
 
-    [Benchmark]
-    public void SerializeMemoryPack()
-    {
-        MemoryPackSerializer.Serialize(input);
-    }
+        [Benchmark]
+        public void DeserializeSTJ()
+        {
+            JsonSerializer.Deserialize<Class[]>(outputSTJ);
+        }
 
-    [Benchmark]
-    public void SerializeFastestMemoryPacker()
-    {
-        FastestMemoryPacker.Serialize(input);
-    }
+        [Benchmark]
+        public void DeserializeMemoryPack()
+        {
+            MemoryPackSerializer.Deserialize<Class[]>(outputMP);
+        }
 
-    [Benchmark]
-    public void DeserializeNewtonsoft()
-    {
-        JsonConvert.DeserializeObject<Class[]>(outputNewtonsoft);
-    }
-
-    [Benchmark]
-    public void DeserializeSTJ()
-    {
-        JsonSerializer.Deserialize<Class[]>(outputSTJ);
-    }
-
-    [Benchmark]
-    public void DeserializeMemoryPack()
-    {
-        MemoryPackSerializer.Deserialize<Class[]>(outputMP);
-    }
-
-    [Benchmark]
-    public void DeserializeFastestMemoryPacker()
-    {
-        FastestMemoryPacker.Deserialize<Class[]>(outputFMP);
+        [Benchmark(Baseline = true)]
+        public void DeserializeFastestMemoryPacker()
+        {
+            FastestMemoryPacker.Deserialize<Class[]>(outputFMP);
+        }
     }
 
     [MemoryPackable]

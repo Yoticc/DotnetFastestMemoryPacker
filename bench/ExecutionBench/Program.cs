@@ -1,17 +1,17 @@
-﻿using BenchmarkDotNet.Configs;
+﻿using BenchmarkDotNet.Columns;
+using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
-using System.Reflection;
 
 var benchmarksConfig =
     ManualConfig.Create(DefaultConfig.Instance)
     .WithOptions(ConfigOptions.StopOnFirstError)
     .WithOption(ConfigOptions.LogBuildOutput, false)
     .WithOptions(ConfigOptions.JoinSummary)
-    .WithOptions(ConfigOptions.DisableLogFile);
+    .WithOptions(ConfigOptions.DisableLogFile)
+    .HideColumns(StatisticColumn.StdDev, StatisticColumn.Median, BaselineRatioColumn.RatioStdDev);
     
-var benchmarks = Assembly.GetExecutingAssembly().GetTypes().Where(type => type.Namespace == "ExecutionBench.Benchmarks" && !type.IsNested).ToArray();
+var benchmarks = typeof(BenchmarkClass).Assembly.GetTypes().Where(type => type.CustomAttributes.Any(attribute => attribute.AttributeType == typeof(BenchmarkClass))).ToArray();
 BenchmarkRunner.Run(benchmarks);
 
 Console.WriteLine($"All benchmarks were passed!");
 Console.ReadLine();
-

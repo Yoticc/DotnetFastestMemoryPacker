@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExecutionBench", "bench\Exe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotnetFastestMemoryPacker.Tests", "test\DotnetFastestMemoryPacker.Tests\DotnetFastestMemoryPacker.Tests.csproj", "{B43D39E7-6E26-1ECC-1076-E10F120F17B0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompetingBench", "bench\CompetingBench\CompetingBench.csproj", "{B717AA15-7923-4F87-B8E9-43E9085B41A5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,10 @@ Global
 		{B43D39E7-6E26-1ECC-1076-E10F120F17B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B43D39E7-6E26-1ECC-1076-E10F120F17B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B43D39E7-6E26-1ECC-1076-E10F120F17B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B717AA15-7923-4F87-B8E9-43E9085B41A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B717AA15-7923-4F87-B8E9-43E9085B41A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B717AA15-7923-4F87-B8E9-43E9085B41A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B717AA15-7923-4F87-B8E9-43E9085B41A5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -66,6 +72,7 @@ Global
 		{A3D11CF5-0CCB-4AE0-B5F2-6C0AE73689B7} = {B3C16674-883C-4E98-9C4D-1C35EDD966BE}
 		{CCB142BF-250C-470B-BFB9-40DCB1EE494B} = {EA435CF7-1C5D-4296-AD31-D538ABE926F0}
 		{B43D39E7-6E26-1ECC-1076-E10F120F17B0} = {36BBE5EF-E689-473E-8A6D-2E895C3D11CE}
+		{B717AA15-7923-4F87-B8E9-43E9085B41A5} = {EA435CF7-1C5D-4296-AD31-D538ABE926F0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {333818EC-983A-48C6-9E6F-890C1D00E457}

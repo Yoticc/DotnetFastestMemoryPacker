@@ -1,25 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+	<OutputType>Exe</OutputType>
 	<TargetFramework>net9.0</TargetFramework>
 	<ImplicitUsings>enable</ImplicitUsings>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	<Nullable>disable</Nullable>
-	<DisableRuntimeMarshallingAttribute>true</DisableRuntimeMarshallingAttribute>
 	<NoWin32Manifest>true</NoWin32Manifest>
 	<ProduceReferenceAssembly>False</ProduceReferenceAssembly>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+  <PropertyGroup>
     <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
     <IsAotCompatible>False</IsAotCompatible>
   </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
-    <IsAotCompatible>False</IsAotCompatible>
-  </PropertyGroup>
-
+	
   <Target Name="RunPatcher" AfterTargets="AfterBuild" Condition="'$(Configuration)' == 'Release'">
 	<Exec Command="echo running patcher..." />
 	<Exec Command="start &quot;&quot; &quot;..\..\tool\patcher\bin\Release\net9.0\patcher.exe&quot;" />

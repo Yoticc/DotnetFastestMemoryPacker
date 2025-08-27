@@ -52,54 +52,62 @@ public partial class StructWithOtherStructs
     static readonly string outputNewtonsoft = JsonConvert.SerializeObject(input);
     static readonly string outputSTJ = JsonSerializer.Serialize(input);
     static readonly byte[] outputMP = MemoryPackSerializer.Serialize(input);
-    static readonly byte[] outputFMP = FastestMemoryPacker.SerializeUnmanaged(input);
+    static readonly byte[] outputFMP = FastestMemoryPacker.Serialize(input);
 
-    [Benchmark]
-    public void SerializeNewtonsoft()
+    [BenchmarkClass]
+    public class Serialize
     {
-        JsonConvert.SerializeObject(input);
+        [Benchmark]
+        public void SerializeNewtonsoft()
+        {
+            JsonConvert.SerializeObject(input);
+        }
+
+        [Benchmark]
+        public void SerializeSTJ()
+        {
+            JsonSerializer.Serialize(input);
+        }
+
+        [Benchmark]
+        public void SerializeMemoryPack()
+        {
+            MemoryPackSerializer.Serialize(input);
+        }
+
+        [Benchmark(Baseline = true)]
+        public void SerializeFastestMemoryPacker()
+        {
+            FastestMemoryPacker.Serialize(input);
+        }
     }
 
-    [Benchmark]
-    public void SerializeSTJ()
+    [BenchmarkClass]
+    public class Deserialize
     {
-        JsonSerializer.Serialize(input);
-    }
+        [Benchmark]
+        public void DeserializeNewtonsoft()
+        {
+            JsonConvert.DeserializeObject<RootStruct>(outputNewtonsoft);
+        }
 
-    [Benchmark]
-    public void SerializeMemoryPack()
-    {
-        MemoryPackSerializer.Serialize(input);
-    }
+        [Benchmark]
+        public void DeserializeSTJ()
+        {
+            JsonSerializer.Deserialize<RootStruct>(outputSTJ);
+        }
 
-    [Benchmark]
-    public void SerializeFastestMemoryPacker()
-    {
-        FastestMemoryPacker.SerializeUnmanaged(input);
-    }
+        [Benchmark]
+        public void DeserializeMemoryPack()
+        {
+            MemoryPackSerializer.Deserialize<RootStruct>(outputMP);
+        }
 
-    [Benchmark]
-    public void DeserializeNewtonsoft()
-    {
-        JsonConvert.DeserializeObject<RootStruct>(outputNewtonsoft);
-    }
-
-    [Benchmark]
-    public void DeserializeSTJ()
-    {
-        JsonSerializer.Deserialize<RootStruct>(outputSTJ);
-    }
-
-    [Benchmark]
-    public void DeserializeMemoryPack()
-    {
-        MemoryPackSerializer.Deserialize<RootStruct>(outputMP);
-    }
-
-    [Benchmark]
-    public void DeserializeFastestMemoryPacker()
-    {
-        FastestMemoryPacker.DeserializeUnmanaged<RootStruct>(outputFMP);
+        [Benchmark(Baseline = true)]
+        public void DeserializeFastestMemoryPacker()
+        {
+            FastestMemoryPacker.Deserialize<RootStruct>(outputFMP);
+        }
     }
 
     [MemoryPackable]

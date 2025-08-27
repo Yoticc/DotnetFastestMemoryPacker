@@ -14,51 +14,59 @@ public class List20000SimpleElements
     static readonly byte[] outputMP = MemoryPackSerializer.Serialize(input);
     static readonly byte[] outputFMP = FastestMemoryPacker.Serialize(input);
 
-    [Benchmark]
-    public void SerializeNewtonsoft()
+    [BenchmarkClass]
+    public class Serialize
     {
-        JsonConvert.SerializeObject(input);
+        [Benchmark]
+        public void SerializeNewtonsoft()
+        {
+            JsonConvert.SerializeObject(input);
+        }
+
+        [Benchmark]
+        public void SerializeBclSTJ()
+        {
+            JsonSerializer.Serialize(input);
+        }
+
+        [Benchmark]
+        public void SerializeMemoryPack()
+        {
+            MemoryPackSerializer.Serialize(input);
+        }
+
+        [Benchmark(Baseline = true)]
+        public void SerializeFastestMemoryPacker()
+        {
+            FastestMemoryPacker.Serialize(input);
+        }
     }
 
-    [Benchmark]
-    public void SerializeBclSTJ()
+    [BenchmarkClass]
+    public class Deserialize
     {
-        JsonSerializer.Serialize(input);
-    }
+        [Benchmark]
+        public void DeserializeNewtonsoft()
+        {
+            JsonConvert.DeserializeObject<List<int>>(outputNewtonsoft);
+        }
 
-    [Benchmark]
-    public void SerializeMemoryPack()
-    {
-        MemoryPackSerializer.Serialize(input);
-    }
+        [Benchmark]
+        public void DeserializeSTJ()
+        {
+            JsonSerializer.Deserialize<List<int>>(outputSTJ);
+        }
 
-    [Benchmark]
-    public void SerializeFastestMemoryPacker()
-    {
-        FastestMemoryPacker.Serialize(input);
-    }
-
-    [Benchmark]
-    public void DeserializeNewtonsoft()
-    {
-        JsonConvert.DeserializeObject<List<int>>(outputNewtonsoft);
-    }
-
-    [Benchmark]
-    public void DeserializeSTJ()
-    {
-        JsonSerializer.Deserialize<List<int>>(outputSTJ);
-    }
-
-    [Benchmark]
-    public void DeserializeMemoryPack()
-    {
-        MemoryPackSerializer.Deserialize<List<int>>(outputMP);
-    }
-
-    [Benchmark]
-    public void DeserializeFastestMemoryPacker()
-    {
-        FastestMemoryPacker.Deserialize<List<int>>(outputFMP);
+        [Benchmark]
+        public void DeserializeMemoryPack()
+        {
+            MemoryPackSerializer.Deserialize<List<int>>(outputMP);
+        }
+        
+        [Benchmark(Baseline = true)]
+        public void DeserializeFastestMemoryPacker()
+        {
+            FastestMemoryPacker.Deserialize<List<int>>(outputFMP);
+        }
     }
 }

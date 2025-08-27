@@ -2,6 +2,32 @@
 
 unsafe class Program
 {
+    static void Main()
+    {
+        var input = arrayOf_ClassWithGCPointer_20000;
+
+        var serialized = FastestMemoryPacker.Serialize(input);
+        var deserialized = FastestMemoryPacker.Deserialize<ClassWithGCPointer[]>(serialized);
+
+        Console.ReadLine();
+        _ = 3;
+    }
+
+    static readonly ClassWithGCPointer[] arrayOf_ClassWithGCPointer_20000 =
+        Enumerable.Range(0, 20000)
+        .Select(i =>
+        new ClassWithGCPointer
+        {
+            Value1 = i,
+            SimpleClass = new SimpleClass
+            {
+                Value1 = i * 2,
+                Value2 = (i * 2) << 8,
+            }
+        })
+        .ToArray();
+
+
     class ClassWithGCPointer
     {
         public long Value1;
@@ -12,30 +38,6 @@ unsafe class Program
     {
         public int Value1;
         public int Value2;
-    }
-
-    static readonly ClassWithGCPointer[] arrayOf_ClassWithGCPointer_200 =
-        Enumerable.Range(0, 200)
-        .Select(i =>
-            new ClassWithGCPointer
-            {
-                Value1 = i,
-                SimpleClass = new SimpleClass
-                {
-                    Value1 = i * 2,
-                    Value2 = (i * 2) << 8,
-                }
-            })
-        .ToArray();
-
-    static void Main()
-    {
-        var input = arrayOf_ClassWithGCPointer_200;
-
-        var serialized = FastestMemoryPacker.Serialize(input);
-        var deserialized = FastestMemoryPacker.Deserialize<ClassWithGCPointer[]>(serialized);
-
-        _ = 3;
     }
 }
 

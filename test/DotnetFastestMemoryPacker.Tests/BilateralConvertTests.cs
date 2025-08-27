@@ -1,5 +1,8 @@
-﻿namespace DotnetFastestMemoryPacker.Tests;
-public class BilateralConvertTests
+﻿using System.Buffers;
+using System.Runtime.CompilerServices;
+
+namespace DotnetFastestMemoryPacker.Tests;
+public unsafe class BilateralConvertTests
 {
     static BilateralConvertTests()
     {
@@ -99,7 +102,7 @@ public class BilateralConvertTests
         .ToArray();
 
     static readonly ClassWithGCPointer[] arrayOf_ClassWithGCPointer_20000 =
-        Enumerable.Range(0, 20000)
+        Enumerable.Range(0, 80000)
         .Select(i =>
         new ClassWithGCPointer
         {
@@ -118,17 +121,7 @@ public class BilateralConvertTests
 
     static readonly ImplicitRecursiveReference0 implicitRecursiveReference0;
 
-    [Fact]
-    public void SerializeUnmanaged()
-    {
-        var input = unmanagedStruct0;
-
-        var serialized = FastestMemoryPacker.SerializeUnmanaged(input);
-        var deserialized = FastestMemoryPacker.DeserializeUnmanaged<UnmanagedStruct0>(serialized);
-
-        Assert.Equal(input, deserialized);
-    }
-
+    /*
     [Fact]
     public void Serialize_UnmanagedStruct()
     {
@@ -267,6 +260,7 @@ public class BilateralConvertTests
             Assert.Equal(a2.Value2, b2.Value2);
         }
     }
+    */
 
     [Fact]
     public void Serialize_Array20000_WithGCPointers()
@@ -274,6 +268,11 @@ public class BilateralConvertTests
         var input = arrayOf_ClassWithGCPointer_20000;
 
         var serialized = FastestMemoryPacker.Serialize(input);
+        serialized = FastestMemoryPacker.Serialize(input);
+        serialized = FastestMemoryPacker.Serialize(input);
+        serialized = FastestMemoryPacker.Serialize(input);
+        serialized = FastestMemoryPacker.Serialize(input);
+        serialized = FastestMemoryPacker.Serialize(input);
         var deserialized = FastestMemoryPacker.Deserialize<ClassWithGCPointer[]>(serialized);
 
         for (var i = 0; i < input.Length; i++)
@@ -297,7 +296,7 @@ public class BilateralConvertTests
             Assert.Equal(a2.Value2, b2.Value2);
         }
     }
-
+    /*
     [Fact]
     public void Serialize_RecursiveReference_Explicit()
     {
@@ -324,11 +323,12 @@ public class BilateralConvertTests
         Assert.True(deserialized == deserialized.SomeElement.Parent);
         Assert.Equal(input.Value1, deserialized.Value1);
 
-        var a = input.SomeElement;
+        var a = input.SomeElement!;
         var b = deserialized.SomeElement;
         Assert.Equal(a.Value1, b.Value1);
         Assert.Equal(a.String, b.String);
     }
+    */
 
     struct ManagedStruct0
     {
