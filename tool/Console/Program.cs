@@ -4,40 +4,14 @@ unsafe class Program
 {
     static void Main()
     {
-        var input = arrayOf_ClassWithGCPointer_20000;
+        var input = new A();
 
         var serialized = FastestMemoryPacker.Serialize(input);
-        var deserialized = FastestMemoryPacker.Deserialize<ClassWithGCPointer[]>(serialized);
+        File.WriteAllBytes(@"C:\a.txt", serialized);
+        //var deserialized = FastestMemoryPacker.Deserialize<A>(serialized);
 
         Console.ReadLine();
         _ = 3;
-    }
-
-    static readonly ClassWithGCPointer[] arrayOf_ClassWithGCPointer_20000 =
-        Enumerable.Range(0, 20000)
-        .Select(i =>
-        new ClassWithGCPointer
-        {
-            Value1 = i,
-            SimpleClass = new SimpleClass
-            {
-                Value1 = i * 2,
-                Value2 = (i * 2) << 8,
-            }
-        })
-        .ToArray();
-
-
-    class ClassWithGCPointer
-    {
-        public long Value1;
-        public SimpleClass? SimpleClass;
-    }
-
-    class SimpleClass
-    {
-        public int Value1;
-        public int Value2;
     }
 }
 
