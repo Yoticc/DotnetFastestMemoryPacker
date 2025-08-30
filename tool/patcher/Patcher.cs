@@ -1,63 +1,17 @@
 ﻿using dnlib.DotNet;
 using dnlib.DotNet.Emit;
+using PatcherReference;
 
 class Patcher
 {
     public void Execute(ModuleDefMD module)
     {
-        HandlePinned(module);
         HandleShouldBeTrimmed(module);
-    }
-
-    void HandlePinned(ModuleDefMD module)
-    {
-        foreach (var type in module.Types)
+        foreach (var type in module.GetTypes())
         {
+            HandleInlineAllMembers(type);
             foreach (var method in type.Methods)
-            {
-                if (!method.HasBody)
-                    continue;
-
-                var body = method.Body;
-                if (!body.HasInstructions)
-                    continue;
-
-                var locals = body.Variables.Locals;
-                var instructions = body.Instructions;
-                for (var index = 0; index < instructions.Count; index++)
-                {
-                    var instruction = instructions[index];
-                    if (instruction.IsLdlocOrLdloca())
-                    {
-                        var nextInstruction = instructions[index + 1];
-                        if (nextInstruction.OpCode.Code == Code.Call)
-                        {
-                            if (nextInstruction.Operand is not MethodSpec calledMethod)
-                                continue;
-
-                            if (calledMethod.Name == "Pinnable")
-                            {
-                                var local = instruction.GetLocal(locals);
-
-                                var oldTypeSig = local.Type;
-                                if (!oldTypeSig.IsPinned)
-                                {
-                                    var newTypeSig = new PinnedSig(oldTypeSig);
-                                    local.Type = newTypeSig;
-                                    Console.WriteLine($"Set pinned state for local '{local.Name}' for method '{method.Name}'");
-                                }
-
-                                Console.WriteLine($"Removed instruction {instructions[index]}");
-                                instructions.RemoveAt(index);
-                                Console.WriteLine($"Removed instruction {instructions[index]}");
-                                instructions.RemoveAt(index);
-
-                                index--;
-                            }
-                        }
-                    }
-                }
-            }
+                HandleExtrinsics(method);
         }
     }
 
@@ -69,11 +23,110 @@ class Patcher
             var type = types[typeIndex];
             var attributes = type.CustomAttributes;
             foreach (var attribute in attributes)
-                if (attribute.AttributeType.Name == "ShouldBeTrimmedAttribute")
+                if (attribute.AttributeType.Name == nameof(ShouldBeTrimmedAttribute))
                 {
                     module.Types.RemoveAt(typeIndex--);
-                    Console.WriteLine($"Removed ShouldBeTrimmed type {type.FullName}");
+                    Console.WriteLine($"Remove ShouldBeTrimmed type {type.FullName}");
                 }
         }
+    }
+
+    void HandleInlineAllMembers(TypeDef type)
+    {
+        var attributes = type.CustomAttributes;
+        foreach (var attribute in attributes)
+            if (attribute.AttributeType.Name == nameof(InlineAllMembersAttribute))
+                foreach (var method in type.Methods)
+                    method.ImplAttributes |= MethodImplAttributes.AggressiveInlining;
+    }
+
+    void HandleExtrinsics(MethodDef method)
+    {
+        if (!method.HasBody)
+            return;
+
+        var body = method.Body;
+        var instructions = body.Instructions;
+
+        for (var index = 0; index < instructions.Count; index++)
+        {
+            var instruction = instructions[index];
+
+            if (instruction.OpCode.Code != Code.Call)
+                continue;
+
+            if (instruction.Operand is not IMethod calledMethod)
+                continue;
+
+            if (calledMethod.DeclaringType.Name != nameof(Extrinsics))
+                continue;
+
+            var methodName = calledMethod.Name;
+            switch (methodName)
+            {
+                case nameof(Extrinsics.Pinnable):
+                    {
+                        if (index < 1)
+                            throw new Exception("HandleExtrinsics: [Pinnable] impossible call: no arguments");
+
+                        var prevInstruction = instructions[index - 1];
+                        if (!prevInstruction.IsLdlocOrLdloca())
+                            throw new Exception("HandleExtrinsics: [Pinnable] passed variable is not a local");
+
+                        var local = prevInstruction.GetLocal(body.Variables.Locals);
+
+                        var oldTypeSig = local.Type;
+                        if (!oldTypeSig.IsPinned)
+                        {
+                            var newTypeSig = new PinnedSig(oldTypeSig);
+                            local.Type = newTypeSig;
+
+                            var localName = local.Name;
+                            if (string.IsNullOrEmpty(localName))
+                                localName = $"V_{local.Index}";
+
+                            Console.WriteLine($"Set pinned state for local '{localName}'");
+                        }
+
+                        RemoveInstruction(instructions, --index);
+                        RemoveInstruction(instructions, index);
+                        break;
+                    }
+                case nameof(Extrinsics.GetTypeHandle):
+                    {
+                        if (calledMethod is not MethodSpec calledMethodSpec)
+                            throw new Exception("HandleExtrinsics: [GetTypeHandle] the method is not generic");
+
+                        var genericSignature = calledMethodSpec.GenericInstMethodSig;
+                        var genericArgument = genericSignature.GenericArguments.First();
+                        var typeSpec = new TypeSpecUser(genericArgument);
+
+                        SetInstruction(instructions, index, OpCodes.Ldtoken.ToInstruction(typeSpec));
+                        break;
+                    }
+                case nameof(Extrinsics.LoadEffectiveAddress):
+                    {
+                        SetInstruction(instructions, index, new Instruction(OpCodes.Add));
+                        break;
+                    }
+                case nameof(Extrinsics.As):
+                    {
+                        RemoveInstruction(instructions, index--);
+                        break;
+                    }
+            }
+        }
+    }
+
+    static void SetInstruction(IList<Instruction> instructions, int index, Instruction instruction)
+    {
+        Console.WriteLine($"Set instruction '{instruction.OpCode.Code}' instead of instruction '{instructions[index].OpCode.Code}'");
+        instructions[index] = instruction;
+    }
+
+    static void RemoveInstruction(IList<Instruction> instructions, int index)
+    {
+        Console.WriteLine($"Remove instruction '{instructions[index].OpCode.Code}'");
+        instructions.RemoveAt(index);
     }
 }

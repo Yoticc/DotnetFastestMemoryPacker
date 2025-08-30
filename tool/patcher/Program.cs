@@ -3,12 +3,15 @@
 try
 {
     var currentDirectory = Environment.CurrentDirectory;
-    var targetAssemblies = Directory.GetFiles(currentDirectory, "*.dll", SearchOption.AllDirectories);
+
+#if DEBUG
+    while (!Path.Exists(Path.Combine(currentDirectory!, "src")))
+        currentDirectory = Path.GetDirectoryName(currentDirectory);
+#endif
+
+    var targetAssemblies = Directory.GetFiles(currentDirectory, "DotnetFastestMemoryPacker.dll", SearchOption.AllDirectories);
     foreach (var targetAssembly in targetAssemblies)
     {
-        if (Path.GetFileName(targetAssembly) != "DotnetFastestMemoryPacker.dll")
-            continue;
-
         if (targetAssembly.Contains(@"\Debug\"))
             continue;
 

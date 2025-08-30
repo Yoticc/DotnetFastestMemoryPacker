@@ -10,9 +10,10 @@ class Program
     {
         for (var i = 0; i < 100; i++)
         {
-            A();
-            B();
-            C();
+            //A();
+            //B();
+            //C();
+            D();
             Thread.Sleep(120);
         }
     }
@@ -20,7 +21,7 @@ class Program
     [MethodImpl(MethodImplOptions.NoInlining)]
     static void A()
     {
-        FastestMemoryPacker.Serialize(new string[] { "123", "234", "567" });
+        FastestMemoryPacker.Serialize(new int[] { 4, 4, 4});
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -33,6 +34,12 @@ class Program
     static void C()
     {
         FastestMemoryPacker.Serialize(100);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static void D()
+    {
+        var serialized = FastestMemoryPacker.Serialize(new string[] { "mystring", "mystring2", "mystring3" });
     }
 }
 #endif

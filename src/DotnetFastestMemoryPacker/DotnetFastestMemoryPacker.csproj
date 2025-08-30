@@ -14,14 +14,21 @@
     <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
     <IsAotCompatible>False</IsAotCompatible>
   </PropertyGroup>
-	
+
+
   <Target Name="RunPatcher" AfterTargets="AfterBuild" Condition="'$(Configuration)' == 'Release'">
 	<Exec Command="echo running patcher..." />
 	<Exec Command="start &quot;&quot; &quot;..\..\tool\patcher\bin\Release\net9.0\patcher.exe&quot;" />
   </Target>
 
+
   <ItemGroup>
-    <ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" Private="false" />
+    <None Include="Internal\Constants\SizeOf.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+	  <ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" Private="false" Condition="'$(Configuration)' == 'Release'" />
+	  <ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" Condition="'$(Configuration)' == 'Debug'" />
   </ItemGroup>
 
 </Project>

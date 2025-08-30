@@ -19,6 +19,15 @@ unsafe struct MethodTable
     public bool IsArray => (flags & 0xC0000) == 0x80000;
     public bool IsValueType => (flags & 786432U) == 262144U;
 
-    public EEClass* Class => (EEClass*)((canonMT & 1) == 0 ? canonMT : ((MethodTable*)(canonMT & ~1))->canonMT);
-    public MethodTable* CanonicalMethodTable => (MethodTable*)((canonMT & 1) == 0 ? (nint)Unsafe.AsPointer(ref this) : canonMT & ~1);
+    public EEClass* Class
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (EEClass*)((canonMT & 1) == 0 ? canonMT : ((MethodTable*)(canonMT & ~1))->canonMT);
+    }
+
+    public MethodTable* CanonicalMethodTable
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (MethodTable*)((canonMT & 1) == 0 ? (nint)Unsafe.AsPointer(ref this) : canonMT & ~1);
+    }
 }

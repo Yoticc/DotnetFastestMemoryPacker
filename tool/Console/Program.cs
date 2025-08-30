@@ -8,7 +8,7 @@ unsafe class Program
 
         var serialized = FastestMemoryPacker.Serialize(input);
         File.WriteAllBytes(@"C:\a.txt", serialized);
-        //var deserialized = FastestMemoryPacker.Deserialize<A>(serialized);
+        var deserialized = FastestMemoryPacker.Deserialize<A>(serialized);
 
         Console.ReadLine();
         _ = 3;
@@ -39,9 +39,8 @@ class A : A_
 
 class B
 {
-    public B() => SelfField = this;
-
-    public B SelfField;
+    //public B() => SelfField = this;
+    //public B SelfField;
     public C StructField = new();
 
     public (int, int) TupleField = (100, 100);
