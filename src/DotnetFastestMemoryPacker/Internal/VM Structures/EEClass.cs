@@ -8,7 +8,7 @@ unsafe struct EEClass
     [FieldOffset(0x18)] public FieldDesc* FieldDesc;
     [FieldOffset(0x40)] public byte NormType;
     [FieldOffset(0x41)] public byte BaseSizePadding;
-    [FieldOffset(0x42)] public short NumInstanceFields;
+    [FieldOffset(0x42)] public ushort NumInstanceFields;
 
     public bool IsArray => NormType == CorElementType.Array || NormType == CorElementType.SZArray;
     public bool IsValueType => NormType == CorElementType.ValueType;

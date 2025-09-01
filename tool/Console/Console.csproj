@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" />
     <ProjectReference Include="..\..\src\DotnetFastestMemoryPacker\DotnetFastestMemoryPacker.csproj" />
   </ItemGroup>
 

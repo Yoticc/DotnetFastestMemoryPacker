@@ -15,12 +15,10 @@
     <IsAotCompatible>False</IsAotCompatible>
   </PropertyGroup>
 
-
   <Target Name="RunPatcher" AfterTargets="AfterBuild" Condition="'$(Configuration)' == 'Release'">
 	<Exec Command="echo running patcher..." />
 	<Exec Command="start &quot;&quot; &quot;..\..\tool\patcher\bin\Release\net9.0\patcher.exe&quot;" />
   </Target>
-
 
   <ItemGroup>
     <None Include="Internal\Constants\SizeOf.cs" />

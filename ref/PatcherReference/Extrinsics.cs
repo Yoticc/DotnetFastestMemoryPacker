@@ -8,8 +8,8 @@ public unsafe class Extrinsics // well i think you got the idea, like wordplay, 
 
     // uses add to any type, even gc, which creates the possibility of direct addressing for pinned objects.
     // warning: object should be pinned.
-    public static void* LoadEffectiveAddress(object @object, long offset) => (void*)(*(nint*)&@object + offset);
-    public static void* LoadEffectiveAddress(object @object, ulong offset) => (void*)(*(nuint*)&@object + offset);
+    public static byte* LoadEffectiveAddress(object @object, long offset) => (byte*)(*(nint*)&@object + offset);
+    public static byte* LoadEffectiveAddress(object @object, ulong offset) => (byte*)(*(nuint*)&@object + offset);
 
     // does nothing. just code for compilation
     public static ToT As<ToT>(object @object) => *(ToT*)&@object;

@@ -5,6 +5,7 @@ namespace DotnetFastestMemoryPacker.Internal;
 [StructLayout(LayoutKind.Explicit)]
 unsafe struct FieldDesc
 {
+    [FieldOffset(0x00)] MethodTable* DeclaringMethodTable;
     [FieldOffset(0x08)] uint dword1;
     [FieldOffset(0x0C)] uint dword2;
 

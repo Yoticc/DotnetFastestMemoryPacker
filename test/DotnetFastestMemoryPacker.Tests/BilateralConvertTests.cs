@@ -101,7 +101,7 @@ public unsafe class BilateralConvertTests
         })
         .ToArray();
 
-    static readonly ClassWithGCPointer[] arrayOf_ClassWithGCPointer_20000 =
+    static readonly ClassWithGCPointer[] arrayOf_ClassWithGCPointer_80000 =
         Enumerable.Range(0, 80000)
         .Select(i =>
         new ClassWithGCPointer
@@ -121,13 +121,12 @@ public unsafe class BilateralConvertTests
 
     static readonly ImplicitRecursiveReference0 implicitRecursiveReference0;
 
-    /*
     [Fact]
     public void Serialize_UnmanagedStruct()
     {
         var input = unmanagedStruct0;
 
-        var serialized = FastestMemoryPacker.Serialize(input);
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
         var deserialized = FastestMemoryPacker.Deserialize<UnmanagedStruct0>(serialized);
 
         Assert.Equal(input, deserialized);
@@ -138,7 +137,7 @@ public unsafe class BilateralConvertTests
     {
         var input = managedStruct0;
 
-        var serialized = FastestMemoryPacker.Serialize(input);
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
         var deserialized = FastestMemoryPacker.Deserialize<ManagedStruct0>(serialized);
 
         Assert.Equal(input, deserialized);
@@ -149,11 +148,11 @@ public unsafe class BilateralConvertTests
     {
         object? input = null;
 
-        var serialized = FastestMemoryPacker.Serialize(input);
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
         var deserialized = FastestMemoryPacker.Deserialize<object>(serialized);
 
         Assert.Empty(serialized);
-        Assert.Equal(input, deserialized);
+        Assert.Null(deserialized);
     }
 
     [Fact]
@@ -161,10 +160,10 @@ public unsafe class BilateralConvertTests
     {
         var input = new object();
 
-        var serialized = FastestMemoryPacker.Serialize(input);
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
         var deserialized = FastestMemoryPacker.Deserialize<object>(serialized);
 
-        Assert.Equal(8, serialized.Length);
+        Assert.Equal(4, serialized.Length);
         Assert.NotNull(deserialized);
     }
 
@@ -175,7 +174,7 @@ public unsafe class BilateralConvertTests
     [InlineData("1234567890")]
     public void Serialize_String(string input)
     {
-        var serialized = FastestMemoryPacker.Serialize(input);
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
         var deserialized = FastestMemoryPacker.Deserialize<string>(serialized);
 
         Assert.Equal(input, deserialized);
@@ -189,7 +188,7 @@ public unsafe class BilateralConvertTests
             UnmanagedStruct4 = null
         };
 
-        var serialized = FastestMemoryPacker.Serialize(input);
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
         var deserialized = FastestMemoryPacker.Deserialize<StructNullableContainer>(serialized);
 
         Assert.Equal(input, deserialized);
@@ -203,7 +202,7 @@ public unsafe class BilateralConvertTests
             UnmanagedStruct4 = unmanagedStruct4
         };
 
-        var serialized = FastestMemoryPacker.Serialize(input);
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
         var deserialized = FastestMemoryPacker.Deserialize<StructNullableContainer>(serialized);
 
         Assert.Equal(input, deserialized);
@@ -214,7 +213,7 @@ public unsafe class BilateralConvertTests
     {
         var input = intArray200;
 
-        var serialized = FastestMemoryPacker.Serialize(input);
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
         var deserialized = FastestMemoryPacker.Deserialize<int[]>(serialized);
 
         Assert.Equal(input, deserialized);
@@ -225,7 +224,7 @@ public unsafe class BilateralConvertTests
     {
         var input = stringArray200;
 
-        var serialized = FastestMemoryPacker.Serialize(input);
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
         var deserialized = FastestMemoryPacker.Deserialize<string[]>(serialized);
 
         Assert.Equal(input, deserialized);
@@ -236,7 +235,7 @@ public unsafe class BilateralConvertTests
     {
         var input = arrayOf_ClassWithGCPointer_200;
 
-        var serialized = FastestMemoryPacker.Serialize(input);
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
         var deserialized = FastestMemoryPacker.Deserialize<ClassWithGCPointer[]>(serialized);
 
         for (var i = 0; i < input.Length; i++)
@@ -260,19 +259,13 @@ public unsafe class BilateralConvertTests
             Assert.Equal(a2.Value2, b2.Value2);
         }
     }
-    */
 
     [Fact]
-    public void Serialize_Array20000_WithGCPointers()
+    public void Serialize_Array80000_WithGCPointers()
     {
-        var input = arrayOf_ClassWithGCPointer_20000;
+        var input = arrayOf_ClassWithGCPointer_80000;
 
-        var serialized = FastestMemoryPacker.Serialize(input);
-        serialized = FastestMemoryPacker.Serialize(input);
-        serialized = FastestMemoryPacker.Serialize(input);
-        serialized = FastestMemoryPacker.Serialize(input);
-        serialized = FastestMemoryPacker.Serialize(input);
-        serialized = FastestMemoryPacker.Serialize(input);
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
         var deserialized = FastestMemoryPacker.Deserialize<ClassWithGCPointer[]>(serialized);
 
         for (var i = 0; i < input.Length; i++)
@@ -296,6 +289,7 @@ public unsafe class BilateralConvertTests
             Assert.Equal(a2.Value2, b2.Value2);
         }
     }
+
     /*
     [Fact]
     public void Serialize_RecursiveReference_Explicit()

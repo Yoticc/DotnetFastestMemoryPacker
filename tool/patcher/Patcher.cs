@@ -6,38 +6,40 @@ class Patcher
 {
     public void Execute(ModuleDefMD module)
     {
-        HandleShouldBeTrimmed(module);
+        HandleAttributes(module);
         foreach (var type in module.GetTypes())
-        {
-            HandleInlineAllMembers(type);
             foreach (var method in type.Methods)
                 HandleExtrinsics(method);
-        }
     }
 
-    void HandleShouldBeTrimmed(ModuleDefMD module)
+    void HandleAttributes(ModuleDefMD module)
     {
         var types = module.Types;
         for (var typeIndex = 0; typeIndex < types.Count; typeIndex++)
         {
             var type = types[typeIndex];
             var attributes = type.CustomAttributes;
-            foreach (var attribute in attributes)
-                if (attribute.AttributeType.Name == nameof(ShouldBeTrimmedAttribute))
+            for (var attributeIndex = 0; attributeIndex < attributes.Count; attributeIndex++)
+            {
+                var attribute = attributes[attributeIndex];
+                switch (attribute.AttributeType.Name)
                 {
-                    module.Types.RemoveAt(typeIndex--);
-                    Console.WriteLine($"Remove ShouldBeTrimmed type {type.FullName}");
-                }
-        }
-    }
+                    case nameof(ShouldBeTrimmedAttribute):
+                        {
+                            RemoveType(module.Types, typeIndex--);
+                            break;
+                        }
+                    case nameof(InlineAllMembersAttribute):
+                        {
+                            foreach (var method in type.Methods)
+                                method.ImplAttributes |= MethodImplAttributes.AggressiveInlining;
 
-    void HandleInlineAllMembers(TypeDef type)
-    {
-        var attributes = type.CustomAttributes;
-        foreach (var attribute in attributes)
-            if (attribute.AttributeType.Name == nameof(InlineAllMembersAttribute))
-                foreach (var method in type.Methods)
-                    method.ImplAttributes |= MethodImplAttributes.AggressiveInlining;
+                            RemoveAttribute(type, attributes, attributeIndex);
+                            break;
+                        }
+                }
+            }
+        }
     }
 
     void HandleExtrinsics(MethodDef method)
@@ -128,5 +130,17 @@ class Patcher
     {
         Console.WriteLine($"Remove instruction '{instructions[index].OpCode.Code}'");
         instructions.RemoveAt(index);
+    }
+
+    static void RemoveType(IList<TypeDef> types, int index)
+    {
+        Console.WriteLine($"Remove type '{types[index].Name}'");
+        types.RemoveAt(index);
+    }
+
+    static void RemoveAttribute(TypeDef type, CustomAttributeCollection attributes, int index)
+    {
+        Console.WriteLine($"Remove attribute '{attributes[index].AttributeType.Name}' from '{type.Name}'");
+        attributes.RemoveAt(index);
     }
 }
