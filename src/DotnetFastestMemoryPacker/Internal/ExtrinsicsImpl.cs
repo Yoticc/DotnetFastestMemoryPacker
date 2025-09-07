@@ -1,5 +1,6 @@
 ﻿#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
 using PatcherReference;
+using System.Runtime.CompilerServices;
 
 namespace DotnetFastestMemoryPacker.Internal;
 [InlineAllMembers]
@@ -24,5 +25,7 @@ static unsafe class ExtrinsicsImpl
     public static uint GetArrayLength(object/*Array*/ array) => GetComponentsCount(array);
     public static uint GetStringLength(object/*string*/ array) => GetComponentsCount(array);
 
-    public static T LoadEffectiveValue<T>(in object @object, long offset) => *(T*)LoadEffectiveAddress(@object, offset);
+    public static void SetStringLength(object array, uint length) => *(uint*)LoadEffectiveAddress(array, SizeOf.MethodTable) = length;
+
+    public static T LoadEffectiveValue<T>(object @object, long offset) => *(T*)LoadEffectiveAddress(@object, offset);
 }

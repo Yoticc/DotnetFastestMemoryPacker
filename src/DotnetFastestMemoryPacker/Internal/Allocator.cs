@@ -1,5 +1,6 @@
 ﻿using PatcherReference;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.X86;
 
 #pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
 namespace DotnetFastestMemoryPacker.Internal;
@@ -9,7 +10,7 @@ namespace DotnetFastestMemoryPacker.Internal;
 [InlineAllMembers]
 unsafe class Allocator
 {
-    static int SizeOf<T>() => typeof(T).IsValueType ? sizeof(T) : sizeof(nint);
+    static int ManagedSizeOf<T>() => typeof(T).IsValueType ? sizeof(T) : sizeof(nint);
 
     public static T[] AllocatePinnedArray<T>(int length)
     {
@@ -27,8 +28,8 @@ unsafe class Allocator
         // slow, heavy and safe way, but it is supposed to be called rarely so it is not a problem
         Array.Copy(array, newArray, array.Length);
 
-        var oldSize = array.Length * SizeOf<T>();
-        var newSize = newLength * SizeOf<T>();
+        var oldSize = array.Length * ManagedSizeOf<T>();
+        var newSize = newLength * ManagedSizeOf<T>();
         Unsafe.InitBlockUnaligned((byte*)GetArrayBody(newArray) + oldSize, 0, (uint)(newSize - oldSize));
 
         array = newArray;
@@ -60,4 +61,31 @@ unsafe class Allocator
         Unsafe.CopyBlock(GetArrayBody(newArray), GetArrayBody(array), (uint)oldSize);
         array = newArray;
     }
+
+    /* body: { u4 length; fixed u2[length] } */
+    public static void AllocateStringFromItsBody(/*pinned*/ ref object @object, byte* bodyPointer, uint* objectSize)
+    {
+        var length = *(uint*)bodyPointer;
+        if (length == 0)
+        {
+            @object = string.Empty;
+            return;
+        }
+
+        if (!Sse41.IsSupported)
+        {
+            @object = new string((char*)(bodyPointer + SizeOf.StringLength), 0, (int)length);
+            return;
+        }
+
+        @object = String__FastAllocateString(null, (int)length);
+
+        var source = bodyPointer + SizeOf.StringLength;
+        var destination = GetObjectBody(@object) + SizeOf.StringLength;
+        var byteCount = *objectSize = length << 1;
+        Unsafe.CopyBlockUnaligned(destination, source, byteCount);
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "FastAllocateString")]
+    public extern static string String__FastAllocateString(string self, int length);
 }

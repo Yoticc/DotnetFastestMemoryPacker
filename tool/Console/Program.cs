@@ -2,16 +2,19 @@
 
 unsafe class Program
 {
+    static bool hasMainThread = true;
     static void Main()
     {
         new Thread(MonitorGC).Start();
+            
+        var input = new A();
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify("Some string here!");
+        //File.WriteAllBytes(@"C:\a.txt", serialized);
+        var deserialized = FastestMemoryPacker.Deserialize<string>(serialized);
 
-        var input = arrayOf_ClassWithGCPointer_80000;
-        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
-        File.WriteAllBytes(@"C:\a.txt", serialized);
-        var deserialized = FastestMemoryPacker.Deserialize<ClassWithGCPointer[]>(serialized);
-
+        Console.WriteLine("Completed");
         Console.ReadLine();
+        hasMainThread = false;
     }
 
     class SimpleClass
@@ -49,7 +52,7 @@ unsafe class Program
         gen1 = GC.CollectionCount(1);
         gen2 = GC.CollectionCount(2);
         
-        while (true)
+        while (hasMainThread)
         {
             Thread.Sleep(1);
             Cycle();

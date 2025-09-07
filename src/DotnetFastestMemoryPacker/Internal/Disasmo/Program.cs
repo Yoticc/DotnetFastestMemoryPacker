@@ -10,9 +10,6 @@ class Program
     {
         for (var i = 0; i < 100; i++)
         {
-            //A();
-            //B();
-            //C();
             D();
             Thread.Sleep(120);
         }

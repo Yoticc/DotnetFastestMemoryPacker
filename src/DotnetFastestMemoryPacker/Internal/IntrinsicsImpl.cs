@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
+﻿using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
 namespace DotnetFastestMemoryPacker.Internal;
@@ -7,54 +6,52 @@ unsafe class IntrinsicsImpl
 {
     public static uint Sum(uint* array, uint length)
     {
-        uint i = 0;
-        uint totalSum = 0;
-
-        if (Avx2.IsSupported)
+        uint sum, offset;
+        if (!Avx2.IsSupported || length <= 7U)
         {
-            const uint VectorSize = 8;
-            var limit = length - (length & (VectorSize * 4) - 1);
+            sum = array[0];
+            for (offset = 1; offset < length; offset++)
+                sum += array[offset];
 
-            if (i < limit)
+            return sum;
+        }
+
+        const uint VectorSize = 8;
+        const uint QuadroVectorSize = VectorSize * 4;
+
+        var ymm0 = Avx.LoadVector256(array);
+        offset = 0U;
+        var limit = length & ~31U;
+        if (offset < limit)
+        {
+            var ymm1 = Avx.LoadVector256(array + offset + VectorSize);
+            var ymm2 = Avx.LoadVector256(array + offset + VectorSize * 2);
+            var ymm3 = Avx.LoadVector256(array + offset + VectorSize * 3);
+
+            for (offset = QuadroVectorSize; offset < limit; offset += QuadroVectorSize)
             {
-                var sum0 = Avx.LoadVector256(array + i);
-                var sum1 = Avx.LoadVector256(array + i + VectorSize);
-                var sum2 = Avx.LoadVector256(array + i + VectorSize * 2);
-                var sum3 = Avx.LoadVector256(array + i + VectorSize * 3);
-
-                for (i += VectorSize * 4; i < limit; i += VectorSize * 4)
-                {
-                    sum0 = Avx2.Add(sum0, Avx.LoadVector256(array + i));
-                    sum1 = Avx2.Add(sum1, Avx.LoadVector256(array + i + VectorSize));
-                    sum2 = Avx2.Add(sum2, Avx.LoadVector256(array + i + VectorSize * 2));
-                    sum3 = Avx2.Add(sum3, Avx.LoadVector256(array + i + VectorSize * 3));
-                }
-
-                totalSum += HorizontalSum(Avx2.Add(Avx2.Add(sum0, sum1), Avx2.Add(sum2, sum3)));
+                ymm0 = Avx2.Add(ymm0, Avx.LoadVector256(array + offset));
+                ymm1 = Avx2.Add(ymm1, Avx.LoadVector256(array + offset + VectorSize));
+                ymm2 = Avx2.Add(ymm2, Avx.LoadVector256(array + offset + VectorSize * 2));
+                ymm3 = Avx2.Add(ymm3, Avx.LoadVector256(array + offset + VectorSize * 3));
             }
 
-            for (i = limit; i <= length - VectorSize; i += VectorSize)
-                totalSum += HorizontalSum(Avx.LoadVector256(array + i));
-
-            for (i = length - (length & VectorSize - 1); i < length; i++)
-                totalSum += array[i];
+            ymm0 = Avx2.Add(ymm0, Avx2.Add(ymm1, Avx2.Add(ymm2, ymm3)));
+            offset -= VectorSize;
         }
-        else
-        {
-            for (; i < length; i++)
-                totalSum += array[i];
-        }
+        offset += VectorSize;
 
-        return totalSum;
-    }
+        limit = length & ~7U;
+        for (; offset < limit; offset += VectorSize)
+            ymm0 = Avx2.Add(ymm0, Avx.LoadVector256(array + offset));
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static uint HorizontalSum(Vector256<uint> vector) => HorizontalSum(Sse2.Add(vector.GetLower(), vector.GetUpper()));
+        var xmm0 = Sse2.Add(ymm0.GetLower(), ymm0.GetUpper());
+        var xmm1 = Sse2.Add(xmm0, Sse2.Shuffle(xmm0, 0b_01_00_11_10));
+        sum = xmm1.GetElement(0) + xmm1.GetElement(1);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static uint HorizontalSum(Vector128<uint> vector)
-    {
-        var sum = Sse2.Add(vector, Sse2.Shuffle(vector, 0b_01_00_11_10));
-        return sum.GetElement(0) + sum.GetElement(1);
+        for (; offset < length; offset++)
+            sum += array[offset];
+
+        return sum;
     }
 }

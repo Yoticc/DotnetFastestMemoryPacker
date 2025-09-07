@@ -1,5 +1,7 @@
 ﻿using PatcherReference;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 #pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
 namespace DotnetFastestMemoryPacker.Internal;
@@ -13,18 +15,16 @@ namespace DotnetFastestMemoryPacker.Internal;
 [InlineAllMembers]
 unsafe class SerializationBuffers
 {
-    const int InitialObjectsCapacity = 2 << 11;
-    const int InitialSizesCapacity = 2 << 11;
-    const int InitialMethodTableCapacity = 2 << 11;
-    const int InitialRootsCapacity = 2 << 12;
-    const int InitialVectorRootsCapacity = 2 << 12;
+    const int InitialObjectsCapacity = 2 << 10;
+    const int InitialSizesCapacity = 2 << 10;
+    const int InitialMethodTableCapacity = 2 << 10;
+    const int InitialVectorRootsCapacity = 2 << 11;
 
     SerializationBuffers()
     {
         AllocateObjects(InitialObjectsCapacity);
         AllocateSizes(InitialSizesCapacity);
         AllocateMethodTables(InitialMethodTableCapacity);
-        AllocateRootsArray(InitialRootsCapacity);
         AllocateVectorRootsArray(InitialVectorRootsCapacity);
     }
 
@@ -32,160 +32,150 @@ unsafe class SerializationBuffers
     uint objectsCapacity;
     uint sizesCapacity;
     uint rootsCapacity;
-    uint vrootsCapacity;
 
     /* nullable/serialization/deserialization */
-    public/*for debug*/ /* n s d */ object[] objectsArray;
-    public/*for debug*/ /*   s   */ uint[] sizesArray; // can has bigger capacity than objects, but not less
-    public/*for debug*/ /* n   d */ nint[] methodTablesArray;
-    public/*for debug*/ /*   s d */ ulong[] rootsArray;
-    public/*for debug*/ /*     d */ ulong[] vrootsArray;
+    /*for debug*/public /* n s d */ object[] objectsArray;
+    /*for debug*/public /*   s   */ uint[] sizesArray; // may has a bigger capacity than objects, but not a smaller one
+    /*for debug*/public /* n   d */ nint[] methodTablesArray;
+    /*for debug*/public /*   s d */ Vector128<ulong>[] rootsArray; // shared array is used instead of two separate ones for 64 and 128 bits roots
 
-    // the extra length is needed to safely use vector computations on such arrays
-    int GetObjectsActualSize(uint length) => (int)length;
-    int GetSizesActualSize(uint length) => (int)(length + 8);
-    int GetMethodTablesActualSize(uint length) => (int)(length + 8);
-    int GetRootsActualSize(uint length) => (int)(length + 8);
-    int GetVectorRootsActualSize(uint length) => (int)(length + 8 << 1);
+    // shared roots requires specific logic to ensure capacity
+    // ensure roots128: count >= rootsCapacity
+    // ensure roots64: count >= rootsCapacity << 1
 
-    object[] AllocateObjects(uint length) => objectsArray = Allocator.AllocatePinnedArray<object>(GetObjectsActualSize(objectsCapacity = length));
-    uint[] AllocateSizes(uint length) => sizesArray = Allocator.AllocatePinnedUninitializedArray<uint>(GetSizesActualSize(sizesCapacity = length));
-    nint[] AllocateMethodTables(uint length) => methodTablesArray = Allocator.AllocatePinnedArray<nint>(GetMethodTablesActualSize(methodTablesCapacity = length));
-    ulong[] AllocateRootsArray(uint length) => rootsArray = Allocator.AllocatePinnedUninitializedArray<ulong>(GetRootsActualSize(rootsCapacity = length));
-    ulong[] AllocateVectorRootsArray(uint length) => vrootsArray = Allocator.AllocatePinnedUninitializedArray<ulong>(GetVectorRootsActualSize(vrootsCapacity = length));
+    // the extra length is needed to safely use arrays for simd computations
+    int GetActualArraySize(uint length) => (int)(length + 16);
 
-    public void SetObject(/*pinned*/ object @object, nint* objects, uint index)
+    object[] AllocateObjects(uint length) => objectsArray = Allocator.AllocatePinnedArray<object>(GetActualArraySize(objectsCapacity = length));
+    
+    uint[] AllocateSizes(uint length) => sizesArray = Allocator.AllocatePinnedUninitializedArray<uint>(GetActualArraySize(sizesCapacity = length));
+    
+    nint[] AllocateMethodTables(uint length) => methodTablesArray = Allocator.AllocatePinnedArray<nint>(GetActualArraySize(methodTablesCapacity = length));
+    
+    Vector128<ulong>[] AllocateVectorRootsArray(uint length) => rootsArray = Allocator.AllocatePinnedUninitializedArray<Vector128<ulong>>(GetActualArraySize(rootsCapacity = length));
+
+    public object GetObject(object* objects, uint index)
     {
-        // even considering that the object is pinned, its reference can live for only a few next instruction,
-        // and only the lord knows if one in a million case will ever happen. some memory-related incident will occur, and it will fall.
-        // also using xchg in pair with As<nint>(@object) replaces default memory barrier,
-        // this default barrier may not exist at all for tier1, but it definitely will exist in tier0.
-        //Interlocked.Exchange(ref Unsafe.AsRef<nint>(objects + index), As<nint>(@object));
-        Unsafe.Add(ref Unsafe.AsRef<object>(objects), index) = @object;
+        return Unsafe.AsRef<object>(objects + index);
     }
 
-    public void AddObject(/*pinned*/ object @object, nint* objects, ref uint objectsCount)
+    public void SetObject(/*pinned*/ object @object, object* objects, uint index)
+    {
+        Unsafe.AsRef<object>(objects + index) = @object;
+    }
+
+    public void AddObject(/*pinned*/ object @object, object* objects, ref uint objectsCount)
     {
         SetObject(@object, objects, objectsCount++);
     }
 
     public void AddObjectAndEnsureCapacity(
         object @object,
-        ref nint* objects, ref uint objectsCount, ref uint objectsCapacity,
-        ref uint* sizes, ref uint sizesCapacity)
+        object** objects, ref uint objectsCount, ref uint objectsCapacity,
+        uint** sizes, ref uint sizesCapacity)
     {
-        AddObject(@object, objects, ref objectsCount);
+        AddObject(@object, *objects, ref objectsCount);
         if (objectsCount == objectsCapacity)
         {
-            ReallocateObjects(ref objects, ref objectsCapacity);
+            ReallocateObjects(objects, objectsCapacity <<= 1);
 
             if (objectsCount == sizesCapacity)
-                ReallocateSizes(ref sizes, ref sizesCapacity);
+                ReallocateSizes(sizes, sizesCapacity <<= 1);
         }
     }
 
-    public void AddRoot(ulong root, ulong* roots, ref uint rootsCount)
+    public Vector128<ulong> GetRoot128(Vector128<ulong>* roots, uint index)
     {
-        roots[rootsCount++] = root;
+        return roots[index];
     }
 
-    public void AddRootAndEnsureCapacity(ulong root, ref ulong* roots, ref uint rootsCount, ref uint rootsCapacity)
+    public ulong GetRoot64(Vector128<ulong>* roots, uint index)
     {
-        AddRoot(root, roots, ref rootsCount);
-        if (rootsCount == objectsCapacity)
-            ReallocateRoots(ref roots, ref rootsCapacity);
+        return ((ulong*)roots)[index];
     }
 
-    static int CalculateAllocationRate(uint requiredCount, uint capacity)
+    public void AddRoot128(Vector128<ulong> root, Vector128<ulong>* roots, ref uint rootsCount)
     {
-        var allocationRation = 0;
-        while (requiredCount > (capacity << ++allocationRation));
-        return allocationRation;
+        Sse2.Store((ulong*)(roots + rootsCount++), root);
     }
 
-    public void EnsureObjectsCapacity(uint requiredCount, ref nint* objects, ref uint capacity)
+    public void AddRoot64(ulong root, Vector128<ulong>* roots, ref uint rootsCount)
+    {
+        ((ulong*)roots)[rootsCount++] = root;
+    }
+
+    public void AddRoot64AndEnsureCapacity(ulong root, Vector128<ulong>** roots, ref uint count, ref uint capacity)
+    {
+        AddRoot64(root, *roots, ref count);
+        if (count == rootsCapacity << 1)
+            ReallocateRoots(roots, capacity <<= 1);
+    }
+
+    public void EnsureObjectsCapacity(uint requiredCount, object** objects, ref uint capacity)
     {
         if (requiredCount >= capacity)
-            ReallocateObjects(ref objects, ref capacity, CalculateAllocationRate(requiredCount, capacity));
+            ReallocateObjects(objects, capacity += requiredCount);
     }
 
-    public void EnsureSizesCapacity(uint requiredCount, ref uint* sizes, ref uint capacity)
+    public void EnsureSizesCapacity(uint requiredCount, uint** sizes, ref uint capacity)
     {
         if (requiredCount >= capacity)
-            ReallocateSizes(ref sizes, ref capacity, CalculateAllocationRate(requiredCount, capacity));
+            ReallocateSizes(sizes, capacity += requiredCount);
     }
 
-    public void EnsureRootsCapacity(uint requiredCount, ref ulong* roots, ref uint capacity)
+    public void EnsureRoots128Capacity(uint requiredCount, Vector128<ulong>** roots, ref uint capacity)
     {
         if (requiredCount >= capacity)
-            ReallocateRoots(ref roots, ref capacity, CalculateAllocationRate(requiredCount, capacity));
+            ReallocateRoots(roots, capacity += requiredCount);
     }
 
-    public void EnsureMethodTablesCapacity(uint requiredCount, ref MethodTable** methodTables, ref uint capacity)
+    public void EnsureRoots64Capacity(uint requiredCount, Vector128<ulong>** roots, ref uint capacity)
+    {
+        if (requiredCount >= capacity << 1)
+            ReallocateRoots(roots, capacity += requiredCount);
+    }
+
+    public void EnsureMethodTablesCapacity(uint requiredCount, MethodTable*** methodTables, ref uint capacity)
     {
         if (requiredCount >= capacity)
-            ReallocateMethodTables(ref methodTables, ref capacity, CalculateAllocationRate(requiredCount, capacity));
+            ReallocateMethodTables(methodTables, capacity += requiredCount);
     }
 
-    void ReallocateObjects(nint** objects, ref uint capacity, int allocationRatio = 1)
+    void ReallocateObjects(object** objects, uint capacity)
     {
-        Allocator.ResizePinnedArrayForGCElements(ref objectsArray, GetObjectsActualSize(objectsCapacity = capacity <<= allocationRatio));
-        *objects = (nint*)GetArrayBody(objectsArray);
+        Allocator.ResizePinnedArrayForGCElements(ref objectsArray, GetActualArraySize(objectsCapacity = capacity));
+        *objects = GetArrayBody(objectsArray);
     }
 
-    void ReallocateObjects(ref nint* objects, ref uint capacity, int allocationRatio = 1)
+    void ReallocateSizes(uint** sizes, uint capacity)
     {
-        Allocator.ResizePinnedArrayForGCElements(ref objectsArray, GetObjectsActualSize(objectsCapacity = capacity <<= allocationRatio));
-        objects = (nint*)GetArrayBody(objectsArray);
+        Allocator.ResizePinnedUninitializedArrayForNonGCElements(ref sizesArray, GetActualArraySize(sizesCapacity = capacity));
+        *sizes = GetArrayBody(sizesArray);
     }
 
-    void ReallocateSizes(ref uint* sizes, ref uint capacity, int allocationRatio = 1)
+    void ReallocateMethodTables(MethodTable*** methodTables, uint capacity)
     {
-        Allocator.ResizePinnedUninitializedArrayForNonGCElements(ref sizesArray, GetSizesActualSize(sizesCapacity = capacity <<= allocationRatio));
-        sizes = GetArrayBody(sizesArray);
-    }
-
-    void ReallocateMethodTables(MethodTable*** methodTables, ref uint capacity, int allocationRatio = 1)
-    {
-        Allocator.ResizePinnedArrayForNonGCElements(ref methodTablesArray, GetMethodTablesActualSize(methodTablesCapacity = capacity <<= allocationRatio));
+        Allocator.ResizePinnedArrayForNonGCElements(ref methodTablesArray, GetActualArraySize(methodTablesCapacity = capacity));
         *methodTables = (MethodTable**)GetArrayBody(methodTablesArray);
     }
 
-    void ReallocateMethodTables(ref MethodTable** methodTables, ref uint capacity, int allocationRatio = 1)
+    void ReallocateRoots(Vector128<ulong>** roots, uint capacity)
     {
-        Allocator.ResizePinnedArrayForNonGCElements(ref methodTablesArray, GetMethodTablesActualSize(methodTablesCapacity = capacity <<= allocationRatio));
-        methodTables = (MethodTable**)GetArrayBody(methodTablesArray);
-    }
-
-    void ReallocateRoots(ulong** roots, ref uint capacity, int allocationRatio = 1)
-    {
-        Allocator.ResizePinnedUninitializedArrayForNonGCElements(ref rootsArray, GetRootsActualSize(rootsCapacity = capacity <<= allocationRatio));
+        Allocator.ResizePinnedUninitializedArrayForNonGCElements(ref rootsArray, GetActualArraySize(rootsCapacity = capacity));
         *roots = GetArrayBody(rootsArray);
     }
 
-    void ReallocateRoots(ref ulong* roots, ref uint capacity, int allocationRatio = 1)
-    {
-        Allocator.ResizePinnedUninitializedArrayForNonGCElements(ref rootsArray, GetRootsActualSize(rootsCapacity = capacity <<= allocationRatio));
-        roots = GetArrayBody(rootsArray);
-    }
-
-    void ReallocateVectorRoots(ref ulong* vroots, ref uint capacity, int allocationRatio = 1)
-    {
-        Allocator.ResizePinnedUninitializedArrayForNonGCElements(ref vrootsArray, GetVectorRootsActualSize(vrootsCapacity = capacity <<= allocationRatio));
-        vroots = GetArrayBody(vrootsArray);
-    }
-
-    public void EnterObjectsContext(nint** objects, uint requiredCount)
+    public void EnterObjectsContext(object** objects, uint requiredCount)
     {
         var capacity = objectsCapacity;
         if (requiredCount >= capacity)
-            ReallocateObjects(objects, ref capacity, CalculateAllocationRate(requiredCount, capacity));
-        else *objects = (nint*)GetArrayBody(objectsArray);
+            ReallocateObjects(objects, capacity + requiredCount);
+        else *objects = GetArrayBody(objectsArray);
     }
 
-    public void EnterObjectsContext(nint** objects, uint* capacity)
+    public void EnterObjectsContext(object** objects, uint* capacity)
     {
-        *objects = (nint*)GetArrayBody(objectsArray);
+        *objects = GetArrayBody(objectsArray);
         *capacity = objectsCapacity;
     }
 
@@ -199,7 +189,7 @@ unsafe class SerializationBuffers
     {
         var capacity = methodTablesCapacity;
         if (requiredCount >= capacity)
-            ReallocateMethodTables(methodTables, ref capacity, CalculateAllocationRate(requiredCount, capacity));
+            ReallocateMethodTables(methodTables, capacity + requiredCount);
         else *methodTables = (MethodTable**)GetArrayBody(methodTablesArray);
     }
 
@@ -209,27 +199,21 @@ unsafe class SerializationBuffers
         *capacity = methodTablesCapacity;
     }
 
-    public void EnterRootsContext(ulong** roots, uint requiredCount)
-    {
-        var capacity = rootsCapacity;
-        if (requiredCount >= capacity)
-            ReallocateRoots(roots, ref capacity, CalculateAllocationRate(requiredCount, capacity));
-        else *roots = GetArrayBody(rootsArray);
-    }
-
-    public void EnterRootsContext(ulong** roots, uint* capacity)
+    public void EnterRootsContext(Vector128<ulong>** roots, uint* capacity)
     {
         *roots = GetArrayBody(rootsArray);
         *capacity = rootsCapacity;
     }
 
-    public void EnterVectorRootsContext(ulong** vroots, uint* capacity)
+    public void EnterRootsContext(Vector128<ulong>** roots, uint requiredCount)
     {
-        *vroots = GetArrayBody(vrootsArray);
-        *capacity = vrootsCapacity;
+        var rootsCapacity = this.rootsCapacity;
+        if (requiredCount >= rootsCapacity)
+            ReallocateRoots(roots, rootsCapacity + requiredCount);
+        else *roots = GetArrayBody(rootsArray);
     }
 
-    public void ExitObjectsContext(nint* objects, uint objectsCount)
+    public void ExitObjectsContext(object* objects, uint objectsCount)
     {
         // it is important to clear the buffer from left references, otherwise it will cause problems with the objects lifetime over time.
         // also, instead this approach can be used finalization, in which do the final cleaning, but this will not work if firstly
@@ -244,5 +228,7 @@ unsafe class SerializationBuffers
     }
 
     [ThreadStatic]
-    public static readonly SerializationBuffers ThreadLocal = new SerializationBuffers();
+    static SerializationBuffers threadLocal;
+
+    public static SerializationBuffers ThreadLocal => threadLocal ?? (threadLocal = new SerializationBuffers());
 }

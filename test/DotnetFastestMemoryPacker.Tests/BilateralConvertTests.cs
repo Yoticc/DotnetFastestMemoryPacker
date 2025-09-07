@@ -290,13 +290,12 @@ public unsafe class BilateralConvertTests
         }
     }
 
-    /*
     [Fact]
     public void Serialize_RecursiveReference_Explicit()
     {
         var input = explicitRecursiveReference;
 
-        var serialized = FastestMemoryPacker.Serialize(input);
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
         var deserialized = FastestMemoryPacker.Deserialize<ExplicitRecursiveReference>(serialized);
 
         Assert.True(deserialized == deserialized.Self);
@@ -309,7 +308,7 @@ public unsafe class BilateralConvertTests
     {
         var input = implicitRecursiveReference0;
 
-        var serialized = FastestMemoryPacker.Serialize(input);
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
         var deserialized = FastestMemoryPacker.Deserialize<ImplicitRecursiveReference0>(serialized);
 
         Assert.NotNull(deserialized.SomeElement);
@@ -322,7 +321,6 @@ public unsafe class BilateralConvertTests
         Assert.Equal(a.Value1, b.Value1);
         Assert.Equal(a.String, b.String);
     }
-    */
 
     struct ManagedStruct0
     {
