@@ -72,9 +72,21 @@ unsafe class Allocator
             return;
         }
 
-        if (!Sse41.IsSupported)
+        @object = String__FastAllocateString(null, (int)length);
+
+        var source = bodyPointer + SizeOf.StringLength;
+        var destination = GetObjectBody(@object) + SizeOf.StringLength;
+        var byteCount = length << 1;
+        *objectSize = byteCount + SizeOf.StringLength;
+        Unsafe.CopyBlockUnaligned(destination, source, byteCount);
+    }
+
+    public static void AllocateStringFromItsBody(/*pinned*/ ref object @object, byte* bodyPointer)
+    {
+        var length = *(uint*)bodyPointer;
+        if (length == 0)
         {
-            @object = new string((char*)(bodyPointer + SizeOf.StringLength), 0, (int)length);
+            @object = string.Empty;
             return;
         }
 
@@ -82,7 +94,7 @@ unsafe class Allocator
 
         var source = bodyPointer + SizeOf.StringLength;
         var destination = GetObjectBody(@object) + SizeOf.StringLength;
-        var byteCount = *objectSize = length << 1;
+        var byteCount = length << 1;
         Unsafe.CopyBlockUnaligned(destination, source, byteCount);
     }
 

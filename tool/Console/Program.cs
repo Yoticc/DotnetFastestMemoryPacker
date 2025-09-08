@@ -6,11 +6,11 @@ unsafe class Program
     static void Main()
     {
         new Thread(MonitorGC).Start();
-            
+
         var input = new A();
-        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify("Some string here!");
-        //File.WriteAllBytes(@"C:\a.txt", serialized);
-        var deserialized = FastestMemoryPacker.Deserialize<string>(serialized);
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
+        File.WriteAllBytes(@"C:\a.txt", serialized);
+        var deserialized = FastestMemoryPacker.Deserialize<A>(serialized);
 
         Console.WriteLine("Completed");
         Console.ReadLine();

@@ -4,7 +4,6 @@ using DotnetFastestMemoryPacker.Internal;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 
 [module: SkipLocalsInit]
 
@@ -288,8 +287,8 @@ public unsafe static class FastestMemoryPacker
                                 buffers.AddObject(innerObject, objects, ref objectsCount);
                             }
 
-                            var root = totalSize + offset << 32 | (uint)index;
-                            buffers.AddRoot64(root, roots, ref rootsCount);
+                            Console.WriteLine($"a-> offset: {totalSize + offset}; index: {index}");
+                            buffers.AddRoot64(offset: (uint)(totalSize + offset), index: (uint)index, roots, ref rootsCount);
                         }
 
                         totalSize += objectSize;
@@ -354,8 +353,8 @@ public unsafe static class FastestMemoryPacker
                                 buffers.AddObject(innerObject, objects, ref objectsCount);
                             }
 
-                            var root = totalSize + offset << 32 | (uint)index;
-                            buffers.AddRoot64(root, roots, ref rootsCount);
+                            Console.WriteLine($"o-> offset: {totalSize + offset}; index: {index}");
+                            buffers.AddRoot64(offset: (uint)(totalSize + offset), index: (uint)index, roots, ref rootsCount);
                         }
 
                         methodTable = parentMethodTable;
@@ -375,7 +374,7 @@ public unsafe static class FastestMemoryPacker
         bytesArray = GC.AllocateUninitializedArray<byte>((int)(SizeOf.PackedHeader + totalSize));
         var bytes = GetArrayBody(bytesArray);
 
-        *(uint*)bytes = rootsCount | (1U << 31)/*object identify state: true*/;
+        *(uint*)bytes = rootsCount;
         bytes += SizeOf.PackedHeader;
 
         var bytesOffset = 0u;
@@ -390,9 +389,8 @@ public unsafe static class FastestMemoryPacker
 
         for (var rootIndex = 0U; rootIndex < rootsCount; rootIndex++)
         {
-            var root = buffers.GetRoot64(roots, rootIndex);
-            // bytes + root.offset = root.index + 1
-            *(ulong*)(bytes + (root >> 32)) = (root & ~0U) + 1;
+            buffers.GetRoot64(out var offset, out var index, roots, rootIndex);
+            *(ulong*)(bytes + offset) = index + 1;
         }
 
         buffers.ExitObjectsContext(objects, objectsCount);
@@ -418,16 +416,7 @@ public unsafe static class FastestMemoryPacker
             var header = *(uint*)input;
             input += SizeOf.PackedHeader;
             inputLength -= SizeOf.PackedHeader;
-
-            var hasObjectIdentify = (header & (1 << 31)) > 0U;
-            if (hasObjectIdentify)
-            {
-                var rootsCount = header & ~(1 << 31);
-                return (T)DeserializeWithGCPointersWithObjectIdentify(input, inputLength, methodTable, rootsCount);
-            }
-
-            throw new NotImplementedException();
-            return (T)DeserializeWithGCPointersWithObjectIdentify(input, inputLength, methodTable, header);
+            return (T)DeserializeWithGCPointers(input, inputLength, methodTable, header);
         }
         else if (typeof(T).IsValueType)
         {
@@ -454,8 +443,7 @@ public unsafe static class FastestMemoryPacker
             }
             else
             {
-                uint objectSize;
-                Allocator.AllocateStringFromItsBody(ref @object, input, &objectSize);
+                Allocator.AllocateStringFromItsBody(ref @object, input);
             }
         }
         else
@@ -471,7 +459,7 @@ public unsafe static class FastestMemoryPacker
         return (T)@object;
     }
 
-    static object DeserializeWithGCPointersWithObjectIdentify(byte* input, uint inputLength, MethodTable* objectMethodTable, uint rootsCount)
+    static object DeserializeWithGCPointers(byte* input, uint inputLength, MethodTable* objectMethodTable, uint rootsCount)
     {
         Pinnable(out object @object);
         Pinnable(out object innerObject);
@@ -507,17 +495,15 @@ public unsafe static class FastestMemoryPacker
                     {
                         @object = new object[arrayLength];
                         var elementMethodTable = methodTable->ElementType;
-                        var objectBody = input;
                         for (var offset = headerSize; offset < objectSize; offset += SizeOf.Reference)
                         {
-                            var referenceIndex = *(uint*)(objectBody + offset);
+                            var referenceIndex = *(uint*)(input + offset);
                             if (referenceIndex > 0)
                             {
                                 methodTables[--referenceIndex] = elementMethodTable;
 
-                                var root = Vector128.CreateScalarUnsafe(objectIndex | (ulong)offset << 32);
-                                root = Sse41.Insert(root.As<ulong, uint>(), referenceIndex, 2).As<uint, ulong>();
-                                buffers.AddRoot128(root, roots, ref rootIndex);
+                                Console.WriteLine($"a<- objectIndex: {objectIndex} offset: {offset}; referenceIndex: {referenceIndex}");
+                                buffers.AddRoot128(objectIndex, offset, referenceIndex, roots, ref rootIndex);
                             }
                         }
                     }
@@ -550,7 +536,6 @@ public unsafe static class FastestMemoryPacker
                 Unsafe.CopyBlockUnaligned(GetObjectBody(@object), input, objectSize);
                 if (methodTable->ContainsGCPointers)
                 {
-                    var objectBody = input;
                     while (true)
                     {
                         var parentMethodTable = methodTable->ParentMethodTable;
@@ -572,7 +557,7 @@ public unsafe static class FastestMemoryPacker
                                 continue;
 
                             var offset = fieldDesc->Offset;
-                            var referenceIndex = *(uint*)(objectBody + offset);
+                            var referenceIndex = *(uint*)(input + offset);
                             if (referenceIndex != 0)
                             {
                                 referenceIndex--;
@@ -587,9 +572,8 @@ public unsafe static class FastestMemoryPacker
                                     methodTables[referenceIndex] = fieldMethodTable;
                                 }
 
-                                var root = Vector128.CreateScalarUnsafe(objectIndex | (ulong)offset << 32);
-                                root = Sse41.Insert(root.As<ulong, uint>(), referenceIndex, 2).As<uint, ulong>();
-                                buffers.AddRoot128(root, roots, ref rootIndex);
+                                Console.WriteLine($"o<- objectIndex: {objectIndex} offset: {offset}; referenceIndex: {referenceIndex}");
+                                buffers.AddRoot128(objectIndex, offset, referenceIndex, roots, ref rootIndex);
                             }
                         }
 
@@ -607,25 +591,17 @@ public unsafe static class FastestMemoryPacker
         var objectsCount = objectIndex;
         for (rootIndex = 0; rootIndex < rootsCount; rootIndex++)
         {
-            var root = roots[rootIndex];
-            var objectIndexAndOffsetToReference = root.GetElement(0);
+            buffers.GetRoot128(out var rootObjectIndex, out var referenceOffset, out var referenceIndex, roots, rootIndex);
 
-            objectIndex = (uint)(objectIndexAndOffsetToReference & ~0u);
-            @object = buffers.GetObject(objects, + objectIndex);
-
-            var offsetToReference = (objectIndexAndOffsetToReference >> 32) + SizeOf.MethodTable;
-            var referencePointer = LoadEffectiveAddress(@object, offsetToReference);
-                
-            var referenceIndex = root.As<ulong, uint>().GetElement(2);
+            @object = buffers.GetObject(objects, rootObjectIndex);
+            var referencePointer = LoadEffectiveAddress(@object, referenceOffset);
             Unsafe.AsRef<object>(referencePointer) = buffers.GetObject(objects, referenceIndex);
         }
-
-        @object = buffers.GetObject(objects, 0);
 
         buffers.ExitObjectsContext(objects, objectsCount);
         buffers.ExitMethodTablesContext(methodTables, objectsCount);
 
-        return @object;
+        return buffers.GetObject(objects, 0);
     }
 }
 

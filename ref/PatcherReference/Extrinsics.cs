@@ -3,15 +3,14 @@
 namespace PatcherReference;
 public unsafe class Extrinsics // well i think you got the idea, like wordplay, intrinsic - extrinsic, ha-ha 💀
 {
-    // set pinnable flag to every passed local variable
+    // set pinnable flag to passed local variable
     public static void Pinnable<T>(out T value) => value = default;
 
     // uses add to any type, even gc, which creates the possibility of direct addressing for pinned objects.
-    // warning: object should be pinned.
-    public static byte* LoadEffectiveAddress(object @object, long offset) => (byte*)(*(nint*)&@object + offset);
-    public static byte* LoadEffectiveAddress(object @object, ulong offset) => (byte*)(*(nuint*)&@object + offset);
+    public static byte* LoadEffectiveAddress(/*pinned*/ object @object, long offset) => (byte*)(*(nint*)&@object + offset);
+    public static byte* LoadEffectiveAddress(/*pinned*/ object @object, ulong offset) => (byte*)(*(nuint*)&@object + offset);
 
-    // does nothing. just code for compilation
+    // does nothing. just code for compilator
     public static ToT As<ToT>(object @object) => *(ToT*)&@object;
 
     // il. ldtoken T

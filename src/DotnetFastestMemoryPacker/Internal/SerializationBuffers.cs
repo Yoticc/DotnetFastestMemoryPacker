@@ -1,4 +1,6 @@
 ﻿using PatcherReference;
+using System;
+using System.Collections.Specialized;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -9,9 +11,6 @@ namespace DotnetFastestMemoryPacker.Internal;
 // it has a similar idea to ArrayPool, but it is very specific. instead of using buckets, it uses one array that expands as needed.
 // in the middle-execution all methods must be inlined, because ensuring that every method is inlined in its callers
 // in the tier1 or full opts phase is important.
-
-// i got tired of writing [ M e t h o d I m p l ( M e t h o d I m p l O p t i o n s . A g g r e s s i v e I n l i n i n g ) ] for every member of this class,
-// so i implemented a separate attribute.
 [InlineAllMembers]
 unsafe class SerializationBuffers
 {
@@ -84,29 +83,39 @@ unsafe class SerializationBuffers
         }
     }
 
-    public Vector128<ulong> GetRoot128(Vector128<ulong>* roots, uint index)
+    public void GetRoot128(out uint objectIndex, out uint referenceOffset, out uint referenceIndex, Vector128<ulong>* roots, uint rootIndex)
     {
-        return roots[index];
+        var root = Sse2.LoadVector128((ulong*)(roots + rootIndex));
+
+        var objectIndexAndReferenceOffset = root.GetElement(0);
+
+        objectIndex = (uint)(objectIndexAndReferenceOffset & ~0u);
+        referenceOffset = (uint)(objectIndexAndReferenceOffset >> 32) + SizeOf.MethodTable;
+        referenceIndex = root.As<ulong, uint>().GetElement(2);
     }
 
-    public ulong GetRoot64(Vector128<ulong>* roots, uint index)
+    public void GetRoot64(out uint offset, out uint index, Vector128<ulong>* roots, uint rootIndex)
     {
-        return ((ulong*)roots)[index];
+        var root = ((ulong*)roots)[rootIndex];
+        offset = (uint)(root >> 32);
+        index = (uint)(root & ~0U);
     }
 
-    public void AddRoot128(Vector128<ulong> root, Vector128<ulong>* roots, ref uint rootsCount)
+    public void AddRoot128(uint objectIndex, uint referenceOffset, uint referenceIndex, Vector128<ulong>* roots, ref uint rootsCount)
     {
+        var root = Vector128.CreateScalarUnsafe(objectIndex | (ulong)referenceOffset << 32);
+        root = Sse41.Insert(root.As<ulong, uint>(), referenceIndex, 2).As<uint, ulong>();
         Sse2.Store((ulong*)(roots + rootsCount++), root);
     }
-
-    public void AddRoot64(ulong root, Vector128<ulong>* roots, ref uint rootsCount)
+    
+    public void AddRoot64(uint offset, uint index, Vector128<ulong>* roots, ref uint rootsCount)
     {
-        ((ulong*)roots)[rootsCount++] = root;
+        ((ulong*)roots)[rootsCount++] = (ulong)offset << 32 | index;
     }
 
-    public void AddRoot64AndEnsureCapacity(ulong root, Vector128<ulong>** roots, ref uint count, ref uint capacity)
+    public void AddRoot64AndEnsureCapacity(uint offset, uint index, Vector128<ulong>** roots, ref uint count, ref uint capacity)
     {
-        AddRoot64(root, *roots, ref count);
+        AddRoot64(offset, index, *roots, ref count);
         if (count == rootsCapacity << 1)
             ReallocateRoots(roots, capacity <<= 1);
     }
