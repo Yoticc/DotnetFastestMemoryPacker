@@ -4,6 +4,7 @@ using DotnetFastestMemoryPacker.Internal;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 [module: SkipLocalsInit]
 
@@ -493,13 +494,17 @@ public unsafe static class FastestMemoryPacker
                         if (headerSize == 8)
                         {
                             @object = new object[arrayLength];
+                            SetMethodTable(@object, methodTable);
                         }
                         else
                         {
-                            var rank = 1 + (headerSize >> 4);
-                            var lengths = (uint*)(input + SizeOf.ArrayLength);
-                            var lowerBounds = (uint*)((byte*)lengths + ((headerSize & ~8) >> 1));
-                            UnsafeAccessors.AllocateArray(methodTable, rank, lengths, lowerBounds, ref @object);
+                            var byteCount = (uint)(headerSize & ~8);
+                            @object = new object[arrayLength + (byteCount >> 3)];
+                            SetMethodTable(@object, methodTable);
+
+                            var destination = LoadEffectiveAddress(@object, SizeOf.ArrayLength);
+                            var source = input + SizeOf.ArrayLength;
+                            Unsafe.CopyBlockUnaligned(destination, source, byteCount);
                         }
 
                         var elementMethodTable = methodTable->ElementType;
