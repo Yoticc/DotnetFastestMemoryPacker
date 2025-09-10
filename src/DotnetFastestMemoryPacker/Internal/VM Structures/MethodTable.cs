@@ -36,4 +36,6 @@ unsafe struct MethodTable
 
         return type;
     }
+
+    public RuntimeTypeHandle GetRuntimeTypeHandle() => RuntimeTypeHandle.FromIntPtr((nint)Unsafe.AsPointer(ref this));
 }

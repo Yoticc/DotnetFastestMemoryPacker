@@ -89,26 +89,32 @@ unsafe class Program
 
 class A_
 {
+    /*
     public string StringField { get; set; } = "Some string here!";
     public string[] StringArrayField { get; set; } = ["index: 0", "index: 1"];
     public string EmptyStringField { get; set; } = "";
     public byte[] ByteArrayField { get; set; } = [0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0xFF, 0xFF];
     public byte[][] ByteArrayArrayField { get; set; } = [[0x01, 0x02, 0x03, 0x04], [0x05], [0x06], [0x07]];
-    public List<F> ListField { get; set; } = [new F(), new F()];
+    public List<F> ListField { get; set; } = [new F() { Value = 101 }, new F() { Value = 102 }];
+    */
 }
 
 class A : A_
 {
     static F FStatic = new F();
 
-    public int[,] MatrixIntArrayField = new int[4, 4] { { 4, 4, 4, 4 }, { 4, 4, 4, 4 }, { 4, 4, 4, 4 }, { 4, 4, 4, 4 } };
+    //public int[,] MatrixIntArrayField = new int[4, 4] { { 10, 11, 12, 13 }, { 14, 15, 16, 17 }, { 18, 19, 20, 21 }, { 22, 23, 24, 25 } };
     public F[,] MatrixFArrayField = new F[2, 2] { { FStatic, FStatic }, { FStatic, FStatic } };
+    /*
     public int IntField1 = 0x7080;
     public ulong LongField = 0xE700660099661818UL;
     public int IntField2 = 0x0C;
     public B BField = new B();
+    */
+    /*
     public D<double, double> DField1 = new D<double, double>() { TValue = 10d, T2Value = 20d };
-    public D<string, F> DField2 = new D<string, F>() { TValue = "TValue!", T2Value = new F() };
+    public D<string, F> DField2 = new D<string, F>() { TValue = "TValue!", T2Value = new F() { Value = 103 } };
+    */
 }
 
 class B

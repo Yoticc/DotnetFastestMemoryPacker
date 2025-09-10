@@ -1,8 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	<OutputType>Exe</OutputType>
-	<TargetFramework>net9.0</TargetFramework>
+	<TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
 	<ImplicitUsings>enable</ImplicitUsings>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	<Nullable>disable</Nullable>
@@ -15,18 +14,13 @@
     <IsAotCompatible>False</IsAotCompatible>
   </PropertyGroup>
 
-  <Target Name="RunPatcher" AfterTargets="AfterBuild" Condition="'$(Configuration)' == 'Release'">
+  <Target Name="RunPatcher" AfterTargets="AfterBuild">
 	<Exec Command="echo running patcher..." />
-	<Exec Command="start &quot;&quot; &quot;..\..\tool\patcher\bin\Release\net9.0\patcher.exe&quot;" />
+	<Exec Command="start &quot;&quot; &quot;..\..\tool\patcher\bin\Release\$(TargetFramework)\patcher.exe&quot;" />
   </Target>
 
   <ItemGroup>
-    <None Include="Internal\Constants\SizeOf.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-	  <ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" Private="false" Condition="'$(Configuration)' == 'Release'" />
-	  <ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" Condition="'$(Configuration)' == 'Debug'" />
+	<ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" Private="false"/>
   </ItemGroup>
 
 </Project>

@@ -4,12 +4,122 @@ using PatcherReference;
 
 class Patcher
 {
-    public void Execute(ModuleDefMD module)
+    public void Execute(ModuleDefMD corlibModule, ModuleDefMD module)
     {
+        HandleUnsafeAccessors(corlibModule, module);
         HandleAttributes(module);
         foreach (var type in module.GetTypes())
             foreach (var method in type.Methods)
                 HandleExtrinsics(method);
+    }
+
+    void HandleUnsafeAccessors(ModuleDefMD corlibModule, ModuleDefMD module)
+    {
+        DefineIgnoreAccessChecksToAttribute(corlibModule, module);
+        foreach (var type in module.Types)
+        {
+            var methods = type.Methods;
+            for (var methodIndex = 0; methodIndex < methods.Count; methodIndex++)
+            {
+                var method = methods[methodIndex];
+                if (!method.HasBody)
+                    continue;
+
+                var body = method.Body;
+                var instructions = body.Instructions;
+                for (var index = 0; index < instructions.Count; index++)
+                {
+                    var instruction = instructions[index];
+
+                    if (instruction.OpCode.Code != Code.Call)
+                        continue;
+
+                    if (instruction.Operand is not MethodDef calledMethod)
+                        continue;
+
+                    var unsafeAccessAttribute = calledMethod.CustomAttributes.FirstOrDefault(attribute => attribute.AttributeType.Name == "UnsafeAccessAttribute");
+
+                    if (unsafeAccessAttribute is null)
+                        continue;
+
+                    var args = unsafeAccessAttribute.ConstructorArguments;
+                    var typeName = args[0].Value as UTF8String;
+                    if (typeName is null)
+                        throw new Exception("HandleUnsafeAccessors: 1-th arg, type name, was null");
+
+                    var methodName = args[1].Value as UTF8String;
+                    if (methodName is null)
+                        methodName = calledMethod.Name;
+
+                    var methodSignature = (UTF8String)args[2].Value;
+                    var declaringType = corlibModule.Find(typeName, false);
+
+                    MethodDef? attributedMethod;
+                    if (methodSignature is not null)
+                        attributedMethod = declaringType.Methods.FirstOrDefault(m => m.Name == methodName && m.ToString() == methodSignature);
+                    else attributedMethod = declaringType.Methods.FirstOrDefault(m => m.Name == methodName);
+
+                    if (attributedMethod is null)
+                        throw new Exception($"HandleUnsafeAccessors: can not find a method with name '{methodName}' in type '{typeName}'");
+
+                    if (calledMethod.Parameters.Count != attributedMethod.Parameters.Count)
+                    {
+                        var availableSignatures = string.Join('\n', declaringType.Methods.Where(m => m.Name == methodName).Select(m => $"'{m}'"));
+                        throw new Exception(
+                            $"HandleUnsafeAccessors: miscounting of arguments for method '{methodName} in type '{typeName}'.\n" + 
+                            $"Available signatures: {availableSignatures}"
+                        );
+                    }
+
+                    var importer = new Importer(module);
+                    var importedMethod = importer.Import(attributedMethod);
+                    if (importedMethod is null)
+                        throw new Exception($"HandleUnsafeAccessors: can not import found method with name '{methodName}' in type '{typeName}'");
+
+                    instruction.Operand = importedMethod;
+                    Console.WriteLine($"Rewrite implementation for method '{method.Name}'");
+                }
+            }
+        }
+
+        foreach (var type in module.Types)
+        {
+            var methods = type.Methods;
+            for (var methodIndex = 0; methodIndex < methods.Count;)
+            {
+                var method = methods[methodIndex];
+                var hasUnsafeAccessAttribute = method.CustomAttributes.Any(attribute => attribute.AttributeType.Name == "UnsafeAccessAttribute");
+                if (hasUnsafeAccessAttribute)
+                {
+                    RemoveMethod(type, methods, methodIndex);
+                    continue;
+                }
+
+                methodIndex++;
+            }
+        }
+
+        static void DefineIgnoreAccessChecksToAttribute(ModuleDefMD corlibModule, ModuleDefMD module)
+        {
+            var importer = new Importer(module);
+            var attributeType = corlibModule.Find("System.Attribute", false);
+            var userType = new TypeDefUser(@namespace: "System.Runtime.CompilerServices", name: "IgnoresAccessChecksToAttribute", baseType: importer.Import(attributeType));
+            AddType(module, userType);
+
+            var ctorSignature = MethodSig.CreateInstance(module.CorLibTypes.Void, module.CorLibTypes.String);
+            var ctorAttributes = MethodAttributes.Public | MethodAttributes.RTSpecialName | MethodAttributes.SpecialName | MethodAttributes.HideBySig;
+            var constructor = new MethodDefUser(".ctor", ctorSignature, MethodImplAttributes.IL, ctorAttributes);
+            var body = constructor.Body = new CilBody();
+            var instructions = body.Instructions;
+            instructions.Add(new Instruction(OpCodes.Ldarg_0));
+            instructions.Add(new Instruction(OpCodes.Call, importer.Import(attributeType.FindDefaultConstructor())));
+            instructions.Add(new Instruction(OpCodes.Ret));
+            AddMethod(userType, constructor);
+
+            var accessToLibrary = "System.Private.CoreLib";
+            var moduleAttribute = new CustomAttribute(constructor, (CAArgument[])[new CAArgument(module.CorLibTypes.String, (UTF8String)accessToLibrary)]);
+            module.Assembly.CustomAttributes.Add(moduleAttribute);
+        }
     }
 
     void HandleAttributes(ModuleDefMD module)
@@ -58,6 +168,9 @@ class Patcher
                 continue;
 
             if (instruction.Operand is not IMethod calledMethod)
+                continue;
+
+            if (calledMethod.DeclaringType is null)
                 continue;
 
             if (calledMethod.DeclaringType.Name != nameof(Extrinsics))
@@ -142,5 +255,29 @@ class Patcher
     {
         Console.WriteLine($"Remove attribute '{attributes[index].AttributeType.Name}' from '{type.Name}'");
         attributes.RemoveAt(index);
+    }
+
+    static void RemoveMethod(TypeDef type, IList<MethodDef> methods, int index)
+    {
+        Console.WriteLine($"Remove method '{methods[index].Name}' from '{type.Name}'");
+        methods.RemoveAt(index);
+    }
+
+    static void AddAttribute(MethodDef method, CustomAttribute attribute)
+    {
+        Console.WriteLine($"Add attribute '{attribute.AttributeType.Name}' from '{method.Name}'");
+        method.CustomAttributes.Add(attribute);
+    }
+
+    static void AddType(ModuleDef module, TypeDef type)
+    {
+        Console.WriteLine($"Add non-nested type '{type.Name}' in module '{module.Name}'");
+        module.AddAsNonNestedType(type);
+    }
+
+    static void AddMethod(TypeDef type, MethodDef method)
+    {
+        Console.WriteLine($"Add method '{method.Name}' in '{type.Name}'");
+        type.Methods.Add(method);
     }
 }

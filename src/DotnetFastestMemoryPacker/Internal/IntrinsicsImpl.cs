@@ -7,10 +7,10 @@ unsafe class IntrinsicsImpl
     public static uint Sum(uint* array, uint length)
     {
         uint sum, offset;
-        if (!Avx2.IsSupported || length <= 7U)
+        if (length <= 7U)
         {
             sum = array[0];
-            for (offset = 1; offset < length; offset++)
+            for (offset = 1U; offset < length; offset++)
                 sum += array[offset];
 
             return sum;

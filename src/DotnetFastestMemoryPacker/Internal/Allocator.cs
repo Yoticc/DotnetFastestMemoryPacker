@@ -1,5 +1,6 @@
 ﻿using PatcherReference;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
 #pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
@@ -11,6 +12,31 @@ namespace DotnetFastestMemoryPacker.Internal;
 unsafe class Allocator
 {
     static int ManagedSizeOf<T>() => typeof(T).IsValueType ? sizeof(T) : sizeof(nint);
+
+    public static void AllocateUninitializedArray(MethodTable* methodTable, uint length, ref object array)
+    {
+        if (methodTable->ContainsGCPointers)
+        {
+            array = new object[length];
+            SetMethodTable(array, methodTable);
+        }
+        else
+        {
+            var bytesCount = length * methodTable->ComponentSize;
+            if (bytesCount < 2048)
+            {
+                array = new byte[bytesCount];
+
+                var xmm0 = Vector128.CreateScalarUnsafe((ulong)methodTable);
+                xmm0 = Sse41.Insert(xmm0.As<ulong, uint>(), length, 2).As<uint, ulong>();
+                Vector128.Store(xmm0, *(ulong**)Unsafe.AsPointer(ref array));
+            }
+            else
+            {
+                UnsafeAccessors.AllocateArray(methodTable, length, GCAllocFlags.ZeroingOptional, ref array);
+            }
+        }
+    }
 
     public static T[] AllocatePinnedArray<T>(int length)
     {
@@ -25,7 +51,6 @@ unsafe class Allocator
     public static void ResizePinnedArrayForGCElements<T>(ref T[] array, int newLength)
     {
         var newArray = AllocatePinnedUninitializedArray<T>(newLength);
-        // slow, heavy and safe way, but it is supposed to be called rarely so it is not a problem
         Array.Copy(array, newArray, array.Length);
 
         var oldSize = array.Length * ManagedSizeOf<T>();
@@ -72,7 +97,7 @@ unsafe class Allocator
             return;
         }
 
-        @object = String__FastAllocateString(null, (int)length);
+        @object = UnsafeAccessors.AllocateUninitializedString(length);
 
         var source = bodyPointer + SizeOf.StringLength;
         var destination = GetObjectBody(@object) + SizeOf.StringLength;
@@ -90,14 +115,11 @@ unsafe class Allocator
             return;
         }
 
-        @object = String__FastAllocateString(null, (int)length);
+        @object = UnsafeAccessors.AllocateUninitializedString(length);
 
         var source = bodyPointer + SizeOf.StringLength;
         var destination = GetObjectBody(@object) + SizeOf.StringLength;
         var byteCount = length << 1;
         Unsafe.CopyBlockUnaligned(destination, source, byteCount);
     }
-
-    [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "FastAllocateString")]
-    public extern static string String__FastAllocateString(string self, int length);
 }
