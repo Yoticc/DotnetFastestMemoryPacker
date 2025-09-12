@@ -7,6 +7,7 @@
 	<Nullable>disable</Nullable>
 	<NoWin32Manifest>true</NoWin32Manifest>
 	<ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+	<Configurations>Release</Configurations>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -20,7 +21,7 @@
   </Target>
 
   <ItemGroup>
-	<ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" Private="false"/>
+	<ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" Private="false" />
   </ItemGroup>
 
 </Project>

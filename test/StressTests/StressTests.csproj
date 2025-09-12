@@ -4,11 +4,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <OutputType>Exe</OutputType>
-    <RootNamespace>DotnetFastestMemoryPacker.Tests</RootNamespace>
 	<TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
 	<TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
 	<UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<Configurations>Release</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,7 +20,8 @@
   </ItemGroup>
 
   <ItemGroup>
-	<ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" Private="false"/>
+	<ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" Private="false" />
+	<ProjectReference Include="..\..\src\DotnetFastestMemoryPacker\DotnetFastestMemoryPacker.csproj" />
   </ItemGroup>
 
 	<ItemGroup>

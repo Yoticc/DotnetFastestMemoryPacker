@@ -24,6 +24,18 @@ public unsafe static class FastestMemoryPacker
     // [     u4     ][         u4        ][       u4      ][   u4   ]
     // [object index][offset to reference][reference index][not used]
 
+    // header structure
+    //
+    // [    u4    ]
+    // [root count]
+    // 
+    // object count < root count
+    //
+    // in future:
+    // [                          u4                        ]
+    // [     b26    ][        5b       ][         1b        ]
+    // [object count][^2 for root count][has object identify]
+
     public static byte[] Serialize<T>(in T objectToSerialize)
     {
         Pinnable(out byte[] bytesArray);
@@ -491,23 +503,33 @@ public unsafe static class FastestMemoryPacker
 
                     if (methodTable->ContainsGCPointers)
                     {
+                        var elementMethodTable = methodTable->ElementType;
                         if (headerSize == 8)
                         {
-                            @object = new object[arrayLength];
-                            SetMethodTable(@object, methodTable);
+                            if (elementMethodTable == GetMethodTable<string>())
+                            {
+                                @object = new string[arrayLength];
+                            }
+                            else
+                            {
+                                @object = new object[arrayLength];
+                                SetMethodTable(@object, methodTable);
+                            }
                         }
                         else
                         {
                             var byteCount = (uint)(headerSize & ~8);
                             @object = new object[arrayLength + (byteCount >> 3)];
-                            SetMethodTable(@object, methodTable);
 
-                            var destination = LoadEffectiveAddress(@object, SizeOf.ArrayLength);
+                            var xmm0 = Vector128.CreateScalarUnsafe((ulong)methodTable);
+                            xmm0 = Sse41.Insert(xmm0.As<ulong, uint>(), arrayLength, 2).As<uint, ulong>();
+                            Vector128.Store(xmm0, *(ulong**)Unsafe.AsPointer(ref @object));
+
+                            var destination = LoadEffectiveAddress(@object, SizeOf.MethodTable + SizeOf.ArrayLength);
                             var source = input + SizeOf.ArrayLength;
                             Unsafe.CopyBlockUnaligned(destination, source, byteCount);
                         }
 
-                        var elementMethodTable = methodTable->ElementType;
                         for (var offset = headerSize; offset < objectSize; offset += SizeOf.Reference)
                         {
                             var referenceIndex = *(uint*)(input + offset);
@@ -523,8 +545,16 @@ public unsafe static class FastestMemoryPacker
                     }
                     else
                     {
-                        Allocator.AllocateUninitializedArray(methodTable, arrayLength, ref @object);
-                        Unsafe.CopyBlockUnaligned(GetObjectBody(@object), input + headerSize, objectSize);
+                        var byteCount = objectSize - SizeOf.ArrayLength;
+                        @object = GC.AllocateUninitializedArray<byte>((int)byteCount);
+
+                        var xmm0 = Vector128.CreateScalarUnsafe((ulong)methodTable);
+                        xmm0 = Sse41.Insert(xmm0.As<ulong, uint>(), arrayLength, 2).As<uint, ulong>();
+                        Vector128.Store(xmm0, *(ulong**)Unsafe.AsPointer(ref @object));
+
+                        var destination = LoadEffectiveAddress(@object, SizeOf.MethodTable + SizeOf.ArrayLength);
+                        var source = input + SizeOf.ArrayLength;
+                        Unsafe.CopyBlockUnaligned(destination, source, byteCount);
                     }
                     buffers.SetObject(@object, objects, objectIndex);
 
@@ -616,6 +646,16 @@ public unsafe static class FastestMemoryPacker
         buffers.ExitMethodTablesContext(methodTables, objectsCount);
 
         return @object;
+    }
+
+    public static class Advanced
+    {
+        public static bool AutoClearObjectCache = true;
+        public static void ClearObjectCache()
+        {
+            var buffers = SerializationBuffers.ThreadLocal;
+            buffers.ClearObjectsContext();
+        }
     }
 }
 

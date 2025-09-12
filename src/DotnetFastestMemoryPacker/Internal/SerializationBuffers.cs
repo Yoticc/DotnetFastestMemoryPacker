@@ -18,6 +18,7 @@ unsafe class SerializationBuffers
     const int InitialSizesCapacity = 2 << 10;
     const int InitialMethodTableCapacity = 2 << 10;
     const int InitialVectorRootsCapacity = 2 << 11;
+    const int PermanentFieldStackCapacity = 2 << 8;
 
     SerializationBuffers()
     {
@@ -31,19 +32,22 @@ unsafe class SerializationBuffers
     uint objectsCapacity;
     uint sizesCapacity;
     uint rootsCapacity;
+    bool hasInitializedFieldStack;
 
-    /* nullable/serialization/deserialization */
-    /*for debug*/public /* n s d */ object[] objectsArray;
-    /*for debug*/public /*   s   */ uint[] sizesArray; // may has a bigger capacity than objects, but not a smaller one
-    /*for debug*/public /* n   d */ nint[] methodTablesArray;
-    /*for debug*/public /*   s d */ Vector128<ulong>[] rootsArray; // shared array is used instead of two separate ones for 64 and 128 bits roots
+    /* aligned/unitialized/nullable/serialization/deserialization */
+    /*for debug*/public /* a   n s d */ object[] objectsArray;
+    /*for debug*/public /*       s   */ uint[] sizesArray; // may has a bigger capacity than objects, but not a smaller one
+    /*for debug*/public /* a   n   d */ nint[] methodTablesArray;
+    /*for debug*/public /* a     s d */ Vector128<ulong>[] rootsArray; // shared array is used instead of two separate ones for 64 and 128 bits roots
+    /*for debug*/public /* a u   s d */ Vector128<ulong>[] fieldStackArray;
 
     // shared roots requires specific logic to ensure capacity
     // ensure roots128: count >= rootsCapacity
     // ensure roots64: count >= rootsCapacity << 1
+    // ensure roots32: count >= rootsCapacity << 2
 
     // the extra length is needed to safely use arrays for simd computations
-    int GetActualArraySize(uint length) => (int)(length + 16);
+    int GetActualArraySize(uint length) => (int)(length + 32);
 
     object[] AllocateObjects(uint length) => objectsArray = Allocator.AllocatePinnedArray<object>(GetActualArraySize(objectsCapacity = length));
     
@@ -222,12 +226,29 @@ unsafe class SerializationBuffers
         else *roots = GetArrayBody(rootsArray);
     }
 
+    public void EnterFieldStackContext(Vector128<ulong>** stack)
+    {
+
+    }
+
     public void ExitObjectsContext(object* objects, uint objectsCount)
     {
         // it is important to clear the buffer from left references, otherwise it will cause problems with the objects lifetime over time.
         // also, instead this approach can be used finalization, in which do the final cleaning, but this will not work if firstly
         // serialize a large array of objects, and then smaller ones
-        Unsafe.InitBlock(objects, 0, objectsCount << 3);
+
+        if (FastestMemoryPacker.Advanced.AutoClearObjectCache)
+            Unsafe.InitBlock(objects, 0, objectsCount << 3);
+    }
+
+    public void ClearObjectsContext()
+    {
+        var array = objectsArray;
+        var length = array.Length;
+
+        var pointer = GetObjectBody(array);
+        Unsafe.InitBlock(pointer, 0, (uint)length << 3);
+
     }
 
     public void ExitMethodTablesContext(MethodTable** methodTables, uint methodTablesCount)

@@ -23,6 +23,7 @@ unsafe struct MethodTable
     public bool IsArray => (flags & 0xC0000U) == 0x80000U;
     public bool IsValueType => (flags & 0xC0000U) == 0x40000U;
     public bool IsCanonical => (canonMT & 1) == 0U;
+    public bool IsCollectible => (flags & 0x00200000U) > 0U;
     public bool HasInstantiation => (flags & 0x80000000U) == 0U && (flags & 0x30U) > 0U;
 
     public EEClass* Class => (EEClass*)(IsCanonical ? canonMT : ((MethodTable*)(canonMT & ~1))->canonMT);
@@ -30,9 +31,12 @@ unsafe struct MethodTable
 
     public Type GetRuntimeType()
     {
-        var type = AuxiliaryData->ExposedRuntimeType;
+        Type type;
+#if NET9_0_OR_GREATER
+        type = AuxiliaryData->ExposedRuntimeType;
         if (type is null)
-            type = Type.GetTypeFromHandle(RuntimeTypeHandle.FromIntPtr((nint)Unsafe.AsPointer(ref this)));
+#endif
+            type = Type.GetTypeFromHandle(GetRuntimeTypeHandle());
 
         return type;
     }

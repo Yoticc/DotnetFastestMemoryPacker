@@ -1,6 +1,7 @@
-﻿using System.Buffers;
+﻿using DotnetFastestMemoryPacker;
+using System.Buffers;
 
-namespace DotnetFastestMemoryPacker.Tests;
+namespace Tests;
 public unsafe class BilateralConvertTests
 {
     static BilateralConvertTests()

@@ -23,9 +23,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bench", "bench", "{EA435CF7
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExecutionBench", "bench\ExecutionBench\ExecutionBench.csproj", "{CCB142BF-250C-470B-BFB9-40DCB1EE494B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotnetFastestMemoryPacker.Tests", "test\DotnetFastestMemoryPacker.Tests\DotnetFastestMemoryPacker.Tests.csproj", "{B43D39E7-6E26-1ECC-1076-E10F120F17B0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "test\Tests\Tests.csproj", "{B43D39E7-6E26-1ECC-1076-E10F120F17B0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompetingBench", "bench\CompetingBench\CompetingBench.csproj", "{B717AA15-7923-4F87-B8E9-43E9085B41A5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StressTests", "test\StressTests\StressTests.csproj", "{CD7294D0-4EB7-44DE-8D72-31AE0070FE33}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -46,6 +48,8 @@ Global
 		{B43D39E7-6E26-1ECC-1076-E10F120F17B0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B717AA15-7923-4F87-B8E9-43E9085B41A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B717AA15-7923-4F87-B8E9-43E9085B41A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD7294D0-4EB7-44DE-8D72-31AE0070FE33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD7294D0-4EB7-44DE-8D72-31AE0070FE33}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -58,6 +62,7 @@ Global
 		{CCB142BF-250C-470B-BFB9-40DCB1EE494B} = {EA435CF7-1C5D-4296-AD31-D538ABE926F0}
 		{B43D39E7-6E26-1ECC-1076-E10F120F17B0} = {36BBE5EF-E689-473E-8A6D-2E895C3D11CE}
 		{B717AA15-7923-4F87-B8E9-43E9085B41A5} = {EA435CF7-1C5D-4296-AD31-D538ABE926F0}
+		{CD7294D0-4EB7-44DE-8D72-31AE0070FE33} = {36BBE5EF-E689-473E-8A6D-2E895C3D11CE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {333818EC-983A-48C6-9E6F-890C1D00E457}

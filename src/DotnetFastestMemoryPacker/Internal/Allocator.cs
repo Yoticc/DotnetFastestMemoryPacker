@@ -13,31 +13,6 @@ unsafe class Allocator
 {
     static int ManagedSizeOf<T>() => typeof(T).IsValueType ? sizeof(T) : sizeof(nint);
 
-    public static void AllocateUninitializedArray(MethodTable* methodTable, uint length, ref object array)
-    {
-        if (methodTable->ContainsGCPointers)
-        {
-            array = new object[length];
-            SetMethodTable(array, methodTable);
-        }
-        else
-        {
-            var bytesCount = length * methodTable->ComponentSize;
-            if (bytesCount < 2048)
-            {
-                array = new byte[bytesCount];
-
-                var xmm0 = Vector128.CreateScalarUnsafe((ulong)methodTable);
-                xmm0 = Sse41.Insert(xmm0.As<ulong, uint>(), length, 2).As<uint, ulong>();
-                Vector128.Store(xmm0, *(ulong**)Unsafe.AsPointer(ref array));
-            }
-            else
-            {
-                UnsafeAccessors.AllocateArray(methodTable, length, GCAllocFlags.ZeroingOptional, ref array);
-            }
-        }
-    }
-
     public static T[] AllocatePinnedArray<T>(int length)
     {
         return GC.AllocateArray<T>(length, pinned: true);
@@ -94,16 +69,18 @@ unsafe class Allocator
         if (length == 0)
         {
             @object = string.Empty;
+            *objectSize = 4;
             return;
         }
 
         @object = UnsafeAccessors.AllocateUninitializedString(length);
 
-        var source = bodyPointer + SizeOf.StringLength;
-        var destination = GetObjectBody(@object) + SizeOf.StringLength;
         var byteCount = length << 1;
-        *objectSize = byteCount + SizeOf.StringLength;
+        var source = bodyPointer + SizeOf.StringLength;
+        var destination = LoadEffectiveAddress(@object, SizeOf.MethodTable + SizeOf.StringLength);
         Unsafe.CopyBlockUnaligned(destination, source, byteCount);
+
+        *objectSize = byteCount + SizeOf.StringLength;
     }
 
     public static void AllocateStringFromItsBody(/*pinned*/ ref object @object, byte* bodyPointer)

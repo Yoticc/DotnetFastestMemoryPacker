@@ -27,11 +27,13 @@ static unsafe class UnsafeAccessors
 
     public static void AllocateUninitializedObject(MethodTable* methodTable, ref object @object)
     {
+        
 #if NET10_0_OR_GREATER
         @object = InternalAllocNoChecks_FastPath(methodTable);
         if (@object is null)
             InternalAllocNoChecks(methodTable, ref @object);
 #elif NET8_0_OR_GREATER
+        
         @object = RuntimeHelpers.GetUninitializedObject(methodTable->GetRuntimeType());
 #endif
     }
