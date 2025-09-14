@@ -1,3 +1,3 @@
 ﻿namespace PatcherReference;
 [AttributeUsage(AttributeTargets.Method)]
-public class AllowUnsafeAccessAttribute : Attribute;
+public class TransitMethodAttribute : Attribute;

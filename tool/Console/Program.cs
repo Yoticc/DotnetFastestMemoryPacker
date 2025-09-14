@@ -8,14 +8,17 @@ unsafe class Program
     {
         new Thread(MonitorGC).Start();
 
-        var input = new C();
+        FastestMemoryPacker.TestMethod();
+        Thread.Sleep(-1);
+
+        var input = new A();
+        var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
+        File.WriteAllBytes(@"C:\a.txt", serialized);
         for (var i = 0; i < 1000000; i++)
         {
             Console.WriteLine(i);
-            var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
-            File.WriteAllBytes(@"C:\a.txt", serialized);
             GC.Collect();
-            var deserialized = FastestMemoryPacker.Deserialize<C>(serialized);
+            var deserialized = FastestMemoryPacker.Deserialize<A>(serialized);
 
             _ = 3;
         }
@@ -95,7 +98,6 @@ unsafe class Program
     }
 }
 
-/*
 class A_
 {
     public string StringField { get; set; } = "Some string here!";
@@ -112,13 +114,13 @@ class A : A_
     static F FStatic = new F();
 
     public int[,] MatrixIntArrayField = new int[4, 4] { { 10, 11, 12, 13 }, { 14, 15, 16, 17 }, { 18, 19, 20, 21 }, { 22, 23, 24, 25 } };
-    //public F[,] MatrixFArrayField = new F[2, 2] { { FStatic, FStatic }, { FStatic, FStatic } };
+    public F[,] MatrixFArrayField = new F[2, 2] { { FStatic, FStatic }, { FStatic, FStatic } };
     public int IntField1 = 0x7080;
     public ulong LongField = 0xE700660099661818UL;
     public int IntField2 = 0x0C;
     public B BField = new B();
-    //public D<double, double> DField1 = new D<double, double>() { TValue = 10d, T2Value = 20d };
-    //public D<string, F> DField2 = new D<string, F>() { TValue = "TValue!", T2Value = new F() { Value = 103 } };
+    public D<double, double> DField1 = new D<double, double>() { TValue = 10d, T2Value = 20d };
+    public D<string, F> DField2 = new D<string, F>() { TValue = "TValue!", T2Value = new F() { Value = 103 } };
 }
 
 class B
@@ -126,9 +128,8 @@ class B
     public B() => SelfField = this;
     public B SelfField;
     //public C<int> StructField = new() { XValue = 10, YValue = 20 };
-    //
-    public (int, int) TupleField = (100, 100);
-    public (int, F) TupleField2 = (100, new F());
+    //public (int, int) TupleField = (100, 100);
+    //public (int, F) TupleField2 = (100, new F());
 }
 
 struct C<T> where T : unmanaged
@@ -150,20 +151,4 @@ partial class D<T, T2>
     public T TValue;
     public T2 T2Value;
     public F FField = new F();
-}
-*/
-
-class C 
-{
-    public int IntValue1 = 0x10;
-    public int IntValue2 = 0x20;
-    public S Struct = new S();
-}
-
-struct S
-{
-    public S() { }
-
-    public string String1 = "a2dd21d2";
-    public string String2 = "a2dd21d2";
 }

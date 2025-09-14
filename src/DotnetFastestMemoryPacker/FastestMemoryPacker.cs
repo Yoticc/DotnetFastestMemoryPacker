@@ -1,6 +1,7 @@
 ﻿global using static DotnetFastestMemoryPacker.Internal.ExtrinsicsImpl;
 global using static PatcherReference.Extrinsics;
 using DotnetFastestMemoryPacker.Internal;
+using PatcherReference;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
@@ -12,6 +13,58 @@ using System.Runtime.Intrinsics.X86;
 namespace DotnetFastestMemoryPacker;
 public unsafe static class FastestMemoryPacker
 {
+    public static void TestMethod()
+    {
+        var i = 10L;
+        var o = 20;
+
+        Console.WriteLine($"{i} {o}");
+        SetIAndO((int)i, o);
+        Console.WriteLine($"{i} {o}");
+
+        var io = BuildIO((int)i, o);
+        Console.WriteLine(io);
+
+        DisplayGenericType<string>(); 
+
+        Console.ReadLine();
+    }
+
+    [TransitMethod]
+    static void SetIAndO(int i, int o)
+    {
+        SetI(i);
+        SetO(o);
+    }
+
+    [TransitMethod]
+    static void SetI(int i)
+    {
+        i = int.Parse(Console.ReadLine()) + 100;
+    }
+
+    [TransitMethod]
+    static void SetO(int o)
+    {
+        o = int.Parse(Console.ReadLine()) + 1000;
+    }
+
+    [TransitMethod]
+    static int BuildIO(int i, int o)
+    {
+        var io = i + o;
+        Console.WriteLine(io);
+        return io >> 3;
+    }
+
+    [TransitMethod]
+    static void DisplayGenericType<T>()
+    {
+        if (typeof(T).IsValueType)
+            Console.WriteLine($"ValueType: {typeof(T).Name}");
+        else Console.WriteLine($"Class: {typeof(T).Name}");
+    }
+
     // root structure                      
     //
     // 64 bit
@@ -454,7 +507,7 @@ public unsafe static class FastestMemoryPacker
             }
             else
             {
-                Allocator.AllocateStringFromItsBody(ref @object, input);
+                ObjectAllocator.AllocateStringFromItsBody(ref @object, input);
             }
         }
         else
@@ -563,7 +616,7 @@ public unsafe static class FastestMemoryPacker
                 else
                 {
                     uint objectSize;
-                    Allocator.AllocateStringFromItsBody(ref @object, input, &objectSize);
+                    ObjectAllocator.AllocateStringFromItsBody(ref @object, input, &objectSize);
                     buffers.SetObject(@object, objects, objectIndex);
                     input += objectSize;
                 }

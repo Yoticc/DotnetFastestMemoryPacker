@@ -9,7 +9,7 @@ namespace DotnetFastestMemoryPacker.Internal;
 // the main goal of this class is to provide an implementation that can be easily ported in case of missing components.
 // it is not actually needed for the latest dotnet.
 [InlineAllMembers]
-unsafe class Allocator
+unsafe class ObjectAllocator
 {
     static int ManagedSizeOf<T>() => typeof(T).IsValueType ? sizeof(T) : sizeof(nint);
 

@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotnetFastestMemoryPacker",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Console", "tool\Console\Console.csproj", "{FF8F745F-F8DC-47DB-8FFF-9C8D8F768BB5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "patcher", "tool\patcher\patcher.csproj", "{74D7A89B-F915-4DCD-8BEB-076DF04F5779}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Patcher", "tool\Patcher\Patcher.csproj", "{74D7A89B-F915-4DCD-8BEB-076DF04F5779}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject

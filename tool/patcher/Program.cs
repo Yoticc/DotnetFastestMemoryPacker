@@ -53,6 +53,9 @@ try
     */
 
     {
+        if (Debugger.IsAttached)
+            goto NoWarCrime;
+
         var stopwatch = new Stopwatch();
         stopwatch.Start();
         Console.OutputEncoding = Encoding.Unicode;
@@ -501,14 +504,24 @@ R112qPPzX!␅6cD␗`␝!>'b␇7␞@N␔D␗`␝!>'b␇r␐J<+",
         Console.Clear();
         stopwatch.Stop();
         Console.WriteLine($"war crime prepared in {stopwatch.ElapsedMilliseconds}ms. excellent result 👍");
+
+    NoWarCrime: // 😥
+        { }
     }
 
     var currentDirectory = Environment.CurrentDirectory;
 
-#if DEBUG
-    while (!Path.Exists(Path.Combine(currentDirectory!, "src")))
-        currentDirectory = Path.GetDirectoryName(currentDirectory);
-#endif
+    if (Debugger.IsAttached)
+    {
+        while (!Path.Exists(Path.Combine(currentDirectory, "src")))
+        {
+            currentDirectory = Path.GetDirectoryName(currentDirectory);
+            if (currentDirectory is null)
+                throw new Exception();
+        }
+
+        currentDirectory = Path.Combine(currentDirectory, "src", "DotnetFastestMemoryPacker");
+    }
 
     var targetAssemblies = Directory.GetFiles(currentDirectory, "DotnetFastestMemoryPacker.dll", SearchOption.AllDirectories);
     foreach (var targetAssembly in targetAssemblies)
@@ -548,7 +561,6 @@ R112qPPzX!␅6cD␗`␝!>'b␇7␞@N␔D␗`␝!>'b␇r␐J<+",
             fileStream.Dispose();
             return;
         }
-
     }
 }
 catch (Exception ex)

@@ -14,11 +14,13 @@
     <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
     <IsAotCompatible>False</IsAotCompatible>
   </PropertyGroup>
-
+	
+<!--
   <Target Name="RunPatcher" AfterTargets="AfterBuild">
 	<Exec Command="echo running patcher..." />
-	<Exec Command="start &quot;&quot; &quot;..\..\tool\patcher\bin\Release\$(TargetFramework)\patcher.exe&quot;" />
+	<Exec Command="start &quot;&quot; &quot;..\..\tool\Patcher\bin\Release\$(TargetFramework)\Patcher.exe&quot;" />
   </Target>
+-->
 
   <ItemGroup>
 	<ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" Private="false" />

@@ -7,10 +7,13 @@ class Patcher
     public void Execute(ModuleDefMD corlibModule, ModuleDefMD module)
     {
         HandleUnsafeAccessors(corlibModule, module);
-        HandleAttributes(module);
+        HandleInlineAllMembers(module);
         foreach (var type in module.GetTypes())
             foreach (var method in type.Methods)
                 HandleExtrinsics(method);
+
+        TransitInliner.Execute(module);
+        HandleShouldBeTrimmed(module);
     }
 
     void HandleUnsafeAccessors(ModuleDefMD corlibModule, ModuleDefMD module)
@@ -31,7 +34,7 @@ class Patcher
                 {
                     var instruction = instructions[index];
 
-                    if (instruction.OpCode.Code != Code.Call)
+                    if (instruction.OpCode.Code is not Code.Call)
                         continue;
 
                     if (instruction.Operand is not MethodDef calledMethod)
@@ -122,7 +125,7 @@ class Patcher
         }
     }
 
-    void HandleAttributes(ModuleDefMD module)
+    void HandleShouldBeTrimmed(ModuleDefMD module)
     {
         var types = module.Types;
         for (var typeIndex = 0; typeIndex < types.Count; typeIndex++)
@@ -132,21 +135,32 @@ class Patcher
             for (var attributeIndex = 0; attributeIndex < attributes.Count; attributeIndex++)
             {
                 var attribute = attributes[attributeIndex];
-                switch (attribute.AttributeType.Name)
+                if (attribute.AttributeType.Name == nameof(ShouldBeTrimmedAttribute))
                 {
-                    case nameof(ShouldBeTrimmedAttribute):
-                        {
-                            RemoveType(module.Types, typeIndex--);
-                            break;
-                        }
-                    case nameof(InlineAllMembersAttribute):
-                        {
-                            foreach (var method in type.Methods)
-                                method.ImplAttributes |= MethodImplAttributes.AggressiveInlining;
+                    RemoveType(module.Types, typeIndex--);
+                    break;
+                }
+            }
+        }
+    }
 
-                            RemoveAttribute(type, attributes, attributeIndex);
-                            break;
-                        }
+    void HandleInlineAllMembers(ModuleDefMD module)
+    {
+        var types = module.Types;
+        for (var typeIndex = 0; typeIndex < types.Count; typeIndex++)
+        {
+            var type = types[typeIndex];
+            var attributes = type.CustomAttributes;
+            for (var attributeIndex = 0; attributeIndex < attributes.Count; attributeIndex++)
+            {
+                var attribute = attributes[attributeIndex];
+                if (attribute.AttributeType.Name == nameof(InlineAllMembersAttribute))
+                {
+                    foreach (var method in type.Methods)
+                        method.ImplAttributes |= MethodImplAttributes.AggressiveInlining;
+
+                    RemoveAttribute(type, attributes, attributeIndex);
+                    break;
                 }
             }
         }
@@ -164,7 +178,7 @@ class Patcher
         {
             var instruction = instructions[index];
 
-            if (instruction.OpCode.Code != Code.Call)
+            if (instruction.OpCode.Code is not Code.Call)
                 continue;
 
             if (instruction.Operand is not IMethod calledMethod)
@@ -196,11 +210,7 @@ class Patcher
                             var newTypeSig = new PinnedSig(oldTypeSig);
                             local.Type = newTypeSig;
 
-                            var localName = local.Name;
-                            if (string.IsNullOrEmpty(localName))
-                                localName = $"V_{local.Index}";
-
-                            Console.WriteLine($"Set pinned state for local '{localName}'");
+                            Console.WriteLine($"Set pinned state for local '{local}'");
                         }
 
                         RemoveInstruction(instructions, --index);

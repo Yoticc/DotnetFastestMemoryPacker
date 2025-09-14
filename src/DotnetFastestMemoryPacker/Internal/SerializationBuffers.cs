@@ -18,7 +18,6 @@ unsafe class SerializationBuffers
     const int InitialSizesCapacity = 2 << 10;
     const int InitialMethodTableCapacity = 2 << 10;
     const int InitialVectorRootsCapacity = 2 << 11;
-    const int PermanentFieldStackCapacity = 2 << 8;
 
     SerializationBuffers()
     {
@@ -32,14 +31,12 @@ unsafe class SerializationBuffers
     uint objectsCapacity;
     uint sizesCapacity;
     uint rootsCapacity;
-    bool hasInitializedFieldStack;
 
     /* aligned/unitialized/nullable/serialization/deserialization */
     /*for debug*/public /* a   n s d */ object[] objectsArray;
     /*for debug*/public /*       s   */ uint[] sizesArray; // may has a bigger capacity than objects, but not a smaller one
     /*for debug*/public /* a   n   d */ nint[] methodTablesArray;
     /*for debug*/public /* a     s d */ Vector128<ulong>[] rootsArray; // shared array is used instead of two separate ones for 64 and 128 bits roots
-    /*for debug*/public /* a u   s d */ Vector128<ulong>[] fieldStackArray;
 
     // shared roots requires specific logic to ensure capacity
     // ensure roots128: count >= rootsCapacity
@@ -49,13 +46,13 @@ unsafe class SerializationBuffers
     // the extra length is needed to safely use arrays for simd computations
     int GetActualArraySize(uint length) => (int)(length + 32);
 
-    object[] AllocateObjects(uint length) => objectsArray = Allocator.AllocatePinnedArray<object>(GetActualArraySize(objectsCapacity = length));
+    object[] AllocateObjects(uint length) => objectsArray = ObjectAllocator.AllocatePinnedArray<object>(GetActualArraySize(objectsCapacity = length));
     
-    uint[] AllocateSizes(uint length) => sizesArray = Allocator.AllocatePinnedUninitializedArray<uint>(GetActualArraySize(sizesCapacity = length));
+    uint[] AllocateSizes(uint length) => sizesArray = ObjectAllocator.AllocatePinnedUninitializedArray<uint>(GetActualArraySize(sizesCapacity = length));
     
-    nint[] AllocateMethodTables(uint length) => methodTablesArray = Allocator.AllocatePinnedArray<nint>(GetActualArraySize(methodTablesCapacity = length));
+    nint[] AllocateMethodTables(uint length) => methodTablesArray = ObjectAllocator.AllocatePinnedArray<nint>(GetActualArraySize(methodTablesCapacity = length));
     
-    Vector128<ulong>[] AllocateVectorRootsArray(uint length) => rootsArray = Allocator.AllocatePinnedUninitializedArray<Vector128<ulong>>(GetActualArraySize(rootsCapacity = length));
+    Vector128<ulong>[] AllocateVectorRootsArray(uint length) => rootsArray = ObjectAllocator.AllocatePinnedUninitializedArray<Vector128<ulong>>(GetActualArraySize(rootsCapacity = length));
 
     public object GetObject(object* objects, uint index)
     {
@@ -156,25 +153,25 @@ unsafe class SerializationBuffers
 
     void ReallocateObjects(object** objects, uint capacity)
     {
-        Allocator.ResizePinnedArrayForGCElements(ref objectsArray, GetActualArraySize(objectsCapacity = capacity));
+        ObjectAllocator.ResizePinnedArrayForGCElements(ref objectsArray, GetActualArraySize(objectsCapacity = capacity));
         *objects = GetArrayBody(objectsArray);
     }
 
     void ReallocateSizes(uint** sizes, uint capacity)
     {
-        Allocator.ResizePinnedUninitializedArrayForNonGCElements(ref sizesArray, GetActualArraySize(sizesCapacity = capacity));
+        ObjectAllocator.ResizePinnedUninitializedArrayForNonGCElements(ref sizesArray, GetActualArraySize(sizesCapacity = capacity));
         *sizes = GetArrayBody(sizesArray);
     }
 
     void ReallocateMethodTables(MethodTable*** methodTables, uint capacity)
     {
-        Allocator.ResizePinnedArrayForNonGCElements(ref methodTablesArray, GetActualArraySize(methodTablesCapacity = capacity));
+        ObjectAllocator.ResizePinnedArrayForNonGCElements(ref methodTablesArray, GetActualArraySize(methodTablesCapacity = capacity));
         *methodTables = (MethodTable**)GetArrayBody(methodTablesArray);
     }
 
     void ReallocateRoots(Vector128<ulong>** roots, uint capacity)
     {
-        Allocator.ResizePinnedUninitializedArrayForNonGCElements(ref rootsArray, GetActualArraySize(rootsCapacity = capacity));
+        ObjectAllocator.ResizePinnedUninitializedArrayForNonGCElements(ref rootsArray, GetActualArraySize(rootsCapacity = capacity));
         *roots = GetArrayBody(rootsArray);
     }
 
@@ -225,12 +222,7 @@ unsafe class SerializationBuffers
             ReallocateRoots(roots, rootsCapacity + requiredCount);
         else *roots = GetArrayBody(rootsArray);
     }
-
-    public void EnterFieldStackContext(Vector128<ulong>** stack)
-    {
-
-    }
-
+    
     public void ExitObjectsContext(object* objects, uint objectsCount)
     {
         // it is important to clear the buffer from left references, otherwise it will cause problems with the objects lifetime over time.
@@ -248,7 +240,6 @@ unsafe class SerializationBuffers
 
         var pointer = GetObjectBody(array);
         Unsafe.InitBlock(pointer, 0, (uint)length << 3);
-
     }
 
     public void ExitMethodTablesContext(MethodTable** methodTables, uint methodTablesCount)
