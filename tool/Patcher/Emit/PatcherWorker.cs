@@ -2,7 +2,7 @@
 using dnlib.DotNet.Emit;
 using PatcherReference;
 
-class Patcher
+class PatcherWorker
 {
     public void Execute(ModuleDefMD corlibModule, ModuleDefMD module)
     {
@@ -18,6 +18,9 @@ class Patcher
 
     void HandleUnsafeAccessors(ModuleDefMD corlibModule, ModuleDefMD module)
     {
+        if (module.TypeExists("System.Runtime.CompilerServices.IgnoresAccessChecksToAttribute", false))
+            return;
+
         DefineIgnoreAccessChecksToAttribute(corlibModule, module);
         foreach (var type in module.Types)
         {
@@ -40,21 +43,9 @@ class Patcher
                     if (instruction.Operand is not MethodDef calledMethod)
                         continue;
 
-                    var unsafeAccessAttribute = calledMethod.CustomAttributes.FirstOrDefault(attribute => attribute.AttributeType.Name == "UnsafeAccessAttribute");
-
-                    if (unsafeAccessAttribute is null)
+                    if (!PatcherProvider.GetUnsafeAccessAttributeArguments(calledMethod, out var typeName, out var methodName, out var methodSignature))
                         continue;
 
-                    var args = unsafeAccessAttribute.ConstructorArguments;
-                    var typeName = args[0].Value as UTF8String;
-                    if (typeName is null)
-                        throw new Exception("HandleUnsafeAccessors: 1-th arg, type name, was null");
-
-                    var methodName = args[1].Value as UTF8String;
-                    if (methodName is null)
-                        methodName = calledMethod.Name;
-
-                    var methodSignature = (UTF8String)args[2].Value;
                     var declaringType = corlibModule.Find(typeName, false);
 
                     MethodDef? attributedMethod;
@@ -91,14 +82,9 @@ class Patcher
             for (var methodIndex = 0; methodIndex < methods.Count;)
             {
                 var method = methods[methodIndex];
-                var hasUnsafeAccessAttribute = method.CustomAttributes.Any(attribute => attribute.AttributeType.Name == "UnsafeAccessAttribute");
-                if (hasUnsafeAccessAttribute)
-                {
-                    RemoveMethod(type, methods, methodIndex);
-                    continue;
-                }
-
-                methodIndex++;
+                if (PatcherProvider.HasUnsafeAccessAttribute(method))
+                    Emitter.RemoveMethod(type, methodIndex);
+                else methodIndex++;
             }
         }
 
@@ -107,7 +93,7 @@ class Patcher
             var importer = new Importer(module);
             var attributeType = corlibModule.Find("System.Attribute", false);
             var userType = new TypeDefUser(@namespace: "System.Runtime.CompilerServices", name: "IgnoresAccessChecksToAttribute", baseType: importer.Import(attributeType));
-            AddType(module, userType);
+            Emitter.AddType(module, userType);
 
             var ctorSignature = MethodSig.CreateInstance(module.CorLibTypes.Void, module.CorLibTypes.String);
             var ctorAttributes = MethodAttributes.Public | MethodAttributes.RTSpecialName | MethodAttributes.SpecialName | MethodAttributes.HideBySig;
@@ -117,7 +103,7 @@ class Patcher
             instructions.Add(new Instruction(OpCodes.Ldarg_0));
             instructions.Add(new Instruction(OpCodes.Call, importer.Import(attributeType.FindDefaultConstructor())));
             instructions.Add(new Instruction(OpCodes.Ret));
-            AddMethod(userType, constructor);
+            Emitter.AddMethod(userType, constructor);
 
             var accessToLibrary = "System.Private.CoreLib";
             var moduleAttribute = new CustomAttribute(constructor, (CAArgument[])[new CAArgument(module.CorLibTypes.String, (UTF8String)accessToLibrary)]);
@@ -128,19 +114,12 @@ class Patcher
     void HandleShouldBeTrimmed(ModuleDefMD module)
     {
         var types = module.Types;
-        for (var typeIndex = 0; typeIndex < types.Count; typeIndex++)
+        for (var typeIndex = 0; typeIndex < types.Count; )
         {
             var type = types[typeIndex];
-            var attributes = type.CustomAttributes;
-            for (var attributeIndex = 0; attributeIndex < attributes.Count; attributeIndex++)
-            {
-                var attribute = attributes[attributeIndex];
-                if (attribute.AttributeType.Name == nameof(ShouldBeTrimmedAttribute))
-                {
-                    RemoveType(module.Types, typeIndex--);
-                    break;
-                }
-            }
+            if (PatcherProvider.HasShouldBeTrimmedAttribute(type))
+                Emitter.RemoveType(module.Types, typeIndex);
+            else typeIndex++;
         }
     }
 
@@ -150,19 +129,14 @@ class Patcher
         for (var typeIndex = 0; typeIndex < types.Count; typeIndex++)
         {
             var type = types[typeIndex];
-            var attributes = type.CustomAttributes;
-            for (var attributeIndex = 0; attributeIndex < attributes.Count; attributeIndex++)
-            {
-                var attribute = attributes[attributeIndex];
-                if (attribute.AttributeType.Name == nameof(InlineAllMembersAttribute))
-                {
-                    foreach (var method in type.Methods)
-                        method.ImplAttributes |= MethodImplAttributes.AggressiveInlining;
+            var inlineAllMembersAttribute = PatcherProvider.GetInlineAllMembersAttribute(type);
+            if (inlineAllMembersAttribute is null)
+                continue;
 
-                    RemoveAttribute(type, attributes, attributeIndex);
-                    break;
-                }
-            }
+            foreach (var method in type.Methods)
+                method.ImplAttributes |= MethodImplAttributes.AggressiveInlining;
+
+            Emitter.RemoveAttribute(type, inlineAllMembersAttribute);
         }
     }
 
@@ -213,8 +187,8 @@ class Patcher
                             Console.WriteLine($"Set pinned state for local '{local}'");
                         }
 
-                        RemoveInstruction(instructions, --index);
-                        RemoveInstruction(instructions, index);
+                        Emitter.RemoveInstruction(instructions, --index);
+                        Emitter.RemoveInstruction(instructions, index);
                         break;
                     }
                 case nameof(Extrinsics.GetTypeHandle):
@@ -226,68 +200,20 @@ class Patcher
                         var genericArgument = genericSignature.GenericArguments.First();
                         var typeSpec = new TypeSpecUser(genericArgument);
 
-                        SetInstruction(instructions, index, OpCodes.Ldtoken.ToInstruction(typeSpec));
+                        Emitter.SetInstruction(instructions, index, OpCodes.Ldtoken.ToInstruction(typeSpec));
                         break;
                     }
                 case nameof(Extrinsics.LoadEffectiveAddress):
                     {
-                        SetInstruction(instructions, index, new Instruction(OpCodes.Add));
+                        Emitter.SetInstruction(instructions, index, new Instruction(OpCodes.Add));
                         break;
                     }
                 case nameof(Extrinsics.As):
                     {
-                        RemoveInstruction(instructions, index--);
+                        Emitter.RemoveInstruction(instructions, index--);
                         break;
                     }
             }
         }
-    }
-
-    static void SetInstruction(IList<Instruction> instructions, int index, Instruction instruction)
-    {
-        Console.WriteLine($"Set instruction '{instruction.OpCode.Code}' instead of instruction '{instructions[index].OpCode.Code}'");
-        instructions[index] = instruction;
-    }
-
-    static void RemoveInstruction(IList<Instruction> instructions, int index)
-    {
-        Console.WriteLine($"Remove instruction '{instructions[index].OpCode.Code}'");
-        instructions.RemoveAt(index);
-    }
-
-    static void RemoveType(IList<TypeDef> types, int index)
-    {
-        Console.WriteLine($"Remove type '{types[index].Name}'");
-        types.RemoveAt(index);
-    }
-
-    static void RemoveAttribute(TypeDef type, CustomAttributeCollection attributes, int index)
-    {
-        Console.WriteLine($"Remove attribute '{attributes[index].AttributeType.Name}' from '{type.Name}'");
-        attributes.RemoveAt(index);
-    }
-
-    static void RemoveMethod(TypeDef type, IList<MethodDef> methods, int index)
-    {
-        Console.WriteLine($"Remove method '{methods[index].Name}' from '{type.Name}'");
-        methods.RemoveAt(index);
-    }
-
-    static void AddAttribute(MethodDef method, CustomAttribute attribute)
-    {
-        Console.WriteLine($"Add attribute '{attribute.AttributeType.Name}' from '{method.Name}'");
-        method.CustomAttributes.Add(attribute);
-    }
-
-    static void AddType(ModuleDef module, TypeDef type)
-    {
-        Console.WriteLine($"Add non-nested type '{type.Name}' in module '{module.Name}'");
-        module.AddAsNonNestedType(type);
-    }
-
-    static void AddMethod(TypeDef type, MethodDef method)
-    {
-        Console.WriteLine($"Add method '{method.Name}' in '{type.Name}'");
-        type.Methods.Add(method);
     }
 }

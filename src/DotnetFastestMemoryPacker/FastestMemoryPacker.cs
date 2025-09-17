@@ -25,7 +25,10 @@ public unsafe static class FastestMemoryPacker
         var io = BuildIO((int)i, o);
         Console.WriteLine(io);
 
-        DisplayGenericType<string>(); 
+        DisplayGenericType<string>();
+
+        MethodWithConstrainedArguments(o, 1);
+        MethodWithConstrainedArguments(o, 2);
 
         Console.ReadLine();
     }
@@ -63,6 +66,21 @@ public unsafe static class FastestMemoryPacker
         if (typeof(T).IsValueType)
             Console.WriteLine($"ValueType: {typeof(T).Name}");
         else Console.WriteLine($"Class: {typeof(T).Name}");
+    }
+
+    [TransitMethod]
+    static void MethodWithConstrainedArguments(int value, int choice)
+    {
+        Console.WriteLine($"Message before. value: {value}");
+
+        if (choice == 0)
+            Console.WriteLine("0??? Nice choice!");
+        else if (choice == 1)
+            Console.WriteLine("1??? ␌6/?=ir#$PQ␘j␎xg␇/jo3␊9mTYFD␗`␝!>'b␇ 👍");
+        else if (choice == 2)
+            Console.WriteLine("2??? Bad choice :(");
+
+        Console.WriteLine("Message after");
     }
 
     // root structure                      
