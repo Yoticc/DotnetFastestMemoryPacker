@@ -1,9 +1,7 @@
-﻿using PatcherReference;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace DotnetFastestMemoryPacker.Internal;
-[InlineAllMembers]
 [StructLayout(LayoutKind.Explicit)]
 unsafe struct MethodTable
 {

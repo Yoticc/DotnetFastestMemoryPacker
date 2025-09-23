@@ -620,13 +620,15 @@ R112qPPzX!␅6cD␗`␝!>'b␇7␞@N␔D␗`␝!>'b␇r␐J<+",
 
             var corlibAssemblyBytes = File.ReadAllBytes(typeof(object).Assembly.Location);
             var corlibModule = ModuleDefMD.Load(corlibAssemblyBytes, moduleContext);
-            var assembly = ModuleDefMD.Load(fileStream, moduleContext);
+            var module = ModuleDefMD.Load(fileStream, moduleContext);
 
-            new PatcherWorker().Execute(corlibModule, assembly);
+            PatcherWorker.Execute(corlibModule, module);
+            TransitInliner.Execute(module);
+            AssemblyOptimizer.Execute(module);
 
             fileStream.SetLength(0);
             fileStream.Position = 0;
-            assembly.Write(fileStream);
+            module.Write(fileStream);
 
             fileStream.Dispose();
             return;

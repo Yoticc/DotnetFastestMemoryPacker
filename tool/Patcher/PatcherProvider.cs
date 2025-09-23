@@ -36,15 +36,7 @@ static class PatcherProvider
         return true;
     }
 
-    public static CustomAttribute? GetShouldBeTrimmedAttribute(TypeDef typeOwner) => GetAttibute(typeOwner, nameof(ShouldBeTrimmedAttribute));
-
-    public static bool HasShouldBeTrimmedAttribute(TypeDef typeOwner) => GetShouldBeTrimmedAttribute(typeOwner) is not null;
-
-    public static CustomAttribute? GetInlineAllMembersAttribute(TypeDef typeOwner) => GetAttibute(typeOwner, nameof(InlineAllMembersAttribute));
-
-    public static bool HasInlineAllMembersAttribute(TypeDef typeOwner) => GetInlineAllMembersAttribute(typeOwner) is not null;
-
-    public static CustomAttribute? GetTransitMethodAttribute(MethodDef methodOwner) => GetAttibute(methodOwner, nameof(TransitMethodAttribute));
+    public static CustomAttribute? GetTransitMethodAttribute(MethodDef methodOwner) => GetAttibute(methodOwner, nameof(InlineAttribute));
 
     public static bool HasTransitMethodAttribute(MethodDef methodOwner) => GetTransitMethodAttribute(methodOwner) is not null;
 

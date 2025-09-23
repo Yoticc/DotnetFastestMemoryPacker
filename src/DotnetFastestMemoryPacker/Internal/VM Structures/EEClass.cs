@@ -6,7 +6,7 @@ unsafe struct EEClass
 {
     [FieldOffset(0x10)] public MethodTable* MethodTable;
     [FieldOffset(0x18)] public FieldDesc* FieldDesc;
-    [FieldOffset(0x40)] public byte NormType;
+    [FieldOffset(0x40)] public CorElementType NormType;
     [FieldOffset(0x41)] public byte BaseSizePadding;
     [FieldOffset(0x42)] public ushort NumInstanceFields;
 

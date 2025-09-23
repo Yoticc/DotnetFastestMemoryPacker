@@ -30,29 +30,37 @@ public unsafe static class FastestMemoryPacker
         MethodWithConstrainedArguments(o, 1);
         MethodWithConstrainedArguments(o, 2);
 
+
+        A(B());
+
+        Uninitialized(out Vector256<ulong> ymm0);
+        Uninitialized(out Vector128<ulong> xmm0);
+        Uninitialized(out Vector128<ulong> xmm1);
+        TestVectors(ymm0, xmm0, xmm1);
+
         Console.ReadLine();
     }
 
-    [TransitMethod]
+    [Inline]
     static void SetIAndO(int i, int o)
     {
         SetI(i);
         SetO(o);
     }
 
-    [TransitMethod]
+    [Inline]
     static void SetI(int i)
     {
         i = int.Parse(Console.ReadLine()) + 100;
     }
 
-    [TransitMethod]
+    [Inline]
     static void SetO(int o)
     {
         o = int.Parse(Console.ReadLine()) + 1000;
     }
 
-    [TransitMethod]
+    [Inline]
     static int BuildIO(int i, int o)
     {
         var io = i + o;
@@ -60,7 +68,7 @@ public unsafe static class FastestMemoryPacker
         return io >> 3;
     }
 
-    [TransitMethod]
+    [Inline]
     static void DisplayGenericType<T>()
     {
         if (typeof(T).IsValueType)
@@ -68,7 +76,7 @@ public unsafe static class FastestMemoryPacker
         else Console.WriteLine($"Class: {typeof(T).Name}");
     }
 
-    [TransitMethod]
+    [Inline]
     static void MethodWithConstrainedArguments(int value, int choice)
     {
         Console.WriteLine($"Message before. value: {value}");
@@ -83,6 +91,27 @@ public unsafe static class FastestMemoryPacker
         Console.WriteLine("Message after");
     }
 
+    [Inline]
+    static void A(int b)
+    {
+        Console.WriteLine(b + 40);
+    }
+
+    [Inline]
+    static int B()
+    {
+        return Environment.TickCount + 20;
+    }
+
+    [Inline]
+    static void TestVectors(Vector256<ulong> ymm0, Vector128<ulong> xmm0, Vector128<ulong> xmm1)
+    {
+        var methodTable = typeof(string).TypeHandle.Value;
+        xmm0 = Vector128.CreateScalarUnsafe((ulong)methodTable);
+        xmm1 = Vector128.CreateScalarUnsafe((ulong)methodTable);
+        ymm0 = Vector256.Create(xmm0, xmm1);
+    }
+
     // root structure                      
     //
     // 64 bit
@@ -93,7 +122,7 @@ public unsafe static class FastestMemoryPacker
     // 128 bit
     // [                             v16                            ]
     // [     u4     ][         u4        ][       u4      ][   u4   ]
-    // [object index][offset to reference][reference index][not used]
+    // [object index][offset to reference][reference index]----------
 
     // header structure
     //

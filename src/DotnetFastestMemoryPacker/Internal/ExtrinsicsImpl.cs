@@ -2,7 +2,6 @@
 using PatcherReference;
 
 namespace DotnetFastestMemoryPacker.Internal;
-[InlineAllMembers]
 static unsafe class ExtrinsicsImpl
 {
     public static MethodTable* GetMethodTable<T>() => (MethodTable*)GetTypeHandle<T>().Value;

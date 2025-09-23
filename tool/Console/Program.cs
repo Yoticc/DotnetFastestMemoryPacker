@@ -8,7 +8,6 @@ unsafe class Program
     {
         new Thread(MonitorGC).Start();
 
-        FastestMemoryPacker.TestMethod();
         Thread.Sleep(-1);
 
         var input = new A();

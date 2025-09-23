@@ -12,5 +12,5 @@ unsafe struct FieldDesc
     public bool IsStatic => (dword1 & 1 << 24) > 0;
 
     public uint Offset => dword2 & (1 << 21) - 1;
-    public byte Type => (byte)((dword2 >> 27) & (1 << 5) - 1);
+    public CorElementType Type => (CorElementType)((dword2 >> 27) & (1 << 5) - 1);
 }

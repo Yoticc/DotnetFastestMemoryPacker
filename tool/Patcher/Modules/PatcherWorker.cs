@@ -2,21 +2,17 @@
 using dnlib.DotNet.Emit;
 using PatcherReference;
 
-class PatcherWorker
+static class PatcherWorker
 {
-    public void Execute(ModuleDefMD corlibModule, ModuleDefMD module)
+    public static void Execute(ModuleDefMD corlibModule, ModuleDefMD module)
     {
         HandleUnsafeAccessors(corlibModule, module);
-        HandleInlineAllMembers(module);
         foreach (var type in module.GetTypes())
             foreach (var method in type.Methods)
                 HandleExtrinsics(method);
-
-        TransitInliner.Execute(module);
-        HandleShouldBeTrimmed(module);
     }
 
-    void HandleUnsafeAccessors(ModuleDefMD corlibModule, ModuleDefMD module)
+    static void HandleUnsafeAccessors(ModuleDefMD corlibModule, ModuleDefMD module)
     {
         if (module.TypeExists("System.Runtime.CompilerServices.IgnoresAccessChecksToAttribute", false))
             return;
@@ -111,36 +107,7 @@ class PatcherWorker
         }
     }
 
-    void HandleShouldBeTrimmed(ModuleDefMD module)
-    {
-        var types = module.Types;
-        for (var typeIndex = 0; typeIndex < types.Count; )
-        {
-            var type = types[typeIndex];
-            if (PatcherProvider.HasShouldBeTrimmedAttribute(type))
-                Emitter.RemoveType(module.Types, typeIndex);
-            else typeIndex++;
-        }
-    }
-
-    void HandleInlineAllMembers(ModuleDefMD module)
-    {
-        var types = module.Types;
-        for (var typeIndex = 0; typeIndex < types.Count; typeIndex++)
-        {
-            var type = types[typeIndex];
-            var inlineAllMembersAttribute = PatcherProvider.GetInlineAllMembersAttribute(type);
-            if (inlineAllMembersAttribute is null)
-                continue;
-
-            foreach (var method in type.Methods)
-                method.ImplAttributes |= MethodImplAttributes.AggressiveInlining;
-
-            Emitter.RemoveAttribute(type, inlineAllMembersAttribute);
-        }
-    }
-
-    void HandleExtrinsics(MethodDef method)
+    static void HandleExtrinsics(MethodDef method)
     {
         if (!method.HasBody)
             return;
@@ -191,6 +158,12 @@ class PatcherWorker
                         Emitter.RemoveInstruction(instructions, index);
                         break;
                     }
+                case nameof(Extrinsics.Uninitialized):
+                    {
+                        Emitter.RemoveInstruction(instructions, index--); // call
+                        Emitter.RemoveInstruction(instructions, index--); // ldloc
+                        break;
+                    }
                 case nameof(Extrinsics.GetTypeHandle):
                     {
                         if (calledMethod is not MethodSpec calledMethodSpec)
@@ -205,12 +178,12 @@ class PatcherWorker
                     }
                 case nameof(Extrinsics.LoadEffectiveAddress):
                     {
-                        Emitter.SetInstruction(instructions, index, new Instruction(OpCodes.Add));
+                        Emitter.SetInstruction(instructions, index, new Instruction(OpCodes.Add)); // call -> add
                         break;
                     }
                 case nameof(Extrinsics.As):
                     {
-                        Emitter.RemoveInstruction(instructions, index--);
+                        Emitter.RemoveInstruction(instructions, index--); // call
                         break;
                     }
             }

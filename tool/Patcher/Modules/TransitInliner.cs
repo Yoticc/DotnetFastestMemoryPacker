@@ -132,7 +132,7 @@ public class TransitInliner
 
     static void InlineMethod(Method method)
     {
-        var calledTransitMethods = method.CalledTransitMethods;
+        var transitMethods = method.CalledTransitMethods;
         var methodDef = method.MethodDefinition;
         var body = methodDef.Body;
         var arguments = methodDef.GetArguments().ToArray();
@@ -149,7 +149,7 @@ public class TransitInliner
             instruction.TryExtractMethodDefinitionAndInstantiation(out var calledMethod, out var instantiation);
             var instantiationGenericArguments = instantiation is not null ? instantiation.GenericArguments.ToList() : [];
 
-            var tMethod = calledTransitMethods.Find(method => method.MethodDefinition == calledMethod);
+            var tMethod = transitMethods.Find(method => method.MethodDefinition == calledMethod);
             if (tMethod is null)
                 continue;
 
@@ -179,41 +179,56 @@ public class TransitInliner
             for (var argumentIndex = transitArguments.Count - 1; argumentIndex >= 0; )
             {
                 var argument = transitArguments[argumentIndex];
-                var previousInstruction = instructions[--instructionIndex];
-                switch (previousInstruction.OpCode.Code)
-                {
-                    case Code.Ldc_I4:
-                        {
-                            InstructionsHelper.ReplaceArgumentWithConstant(transitInstuctions, argument, previousInstruction);
-                            mustOptimizeBranches = true;
-                            break;
-                        }
-                    case Code.Ldarg:
-                        {
-                            InstructionsHelper.ReplaceArgument(transitInstuctions, argument, previousInstruction.GetArgumentOperand());
-                            break;
-                        }
-                    case Code.Ldloc:
-                        {
-                            InstructionsHelper.ReplaceArgument(transitInstuctions, argument, previousInstruction.GetLocalOperand());
-                            break;
-                        }
-                    default: continue;
-                }
+                instruction = instructions[instructionIndex - 1];
+                var opcode = instruction.OpCode.Code;
 
-                argumentIndex--;
+                if (opcode is Code.Ldc_I4 or Code.Ldarg or Code.Ldloc)
+                {
+                    if (opcode is Code.Ldc_I4)
+                    {
+                        InstructionsHelper.ReplaceArgumentWithConstant(transitInstuctions, argument, instruction);
+                        mustOptimizeBranches = true;
+                    }
+                    else if (opcode is Code.Ldarg)
+                    {
+                        InstructionsHelper.ReplaceArgument(transitInstuctions, argument, instruction.GetArgumentOperand());
+                    }
+                    else if (opcode is Code.Ldloc)
+                    {
+                        InstructionsHelper.ReplaceArgument(transitInstuctions, argument, instruction.GetLocalOperand());
+                    }
+
+                    Emitter.RemoveInstruction(instructions, --instructionIndex);
+                    argumentIndex--;
+                }
+                else if (opcode.IsConv()) // in some cases it will break everything 😊
+                {
+                    Emitter.RemoveInstruction(instructions, --instructionIndex);
+                }
+                else
+                {
+                    for (; argumentIndex >= 0; argumentIndex--)
+                    {
+                        argument = transitArguments[argumentIndex];
+                        var local = new Local(argument.Type, null, locals.Count);
+                        locals.Add(local);
+
+                        var stlocInstruction = new Instruction(OpCodes.Stloc, local);
+                        Emitter.InsertInstruction(instructions, instructionIndex++, stlocInstruction);
+
+                        InstructionsHelper.ReplaceArgument(transitInstuctions, argument, local);
+                    }
+                }
             }
 
             if (mustOptimizeBranches)
                 InstructionsOptimizer.OptimizeConditionsAndBranches(transitInstuctions);
 
-            while (instructions[instructionIndex].OpCode.Code != Code.Call)
-                Emitter.RemoveInstruction(instructions, instructionIndex);
-            
-            var callOriginalMethodInstructionIndex = instructionIndex++;
-            BranchifyInsturctions(transitInstuctions, instructions[instructionIndex]);
+            var callOriginalMethodInstructionIndex = instructionIndex;
+            var nextAfterCallInstructionIndex = instructionIndex + 1;
+            BranchifyInsturctions(transitInstuctions, instructions[nextAfterCallInstructionIndex]);
 
-            Emitter.InsertInstructions(instructions, instructionIndex, transitInstuctions);
+            Emitter.InsertInstructions(instructions, nextAfterCallInstructionIndex, transitInstuctions);
             instructionIndex += transitInstuctions.Count;
 
             Emitter.RemoveInstruction(instructions, callOriginalMethodInstructionIndex);
@@ -247,14 +262,14 @@ public class TransitInliner
     static void BranchifyInsturctions(IList<Instruction> instructions, Instruction nextInstructionAfterInlinedCode)
     {
         var hasMultipleReturnStatements = instructions.HasMultipleReturnStatements();
-
+            
         for (var instructionIndex = 0; instructionIndex < instructions.Count; instructionIndex++)
         {
             if (instructions[instructionIndex].OpCode.Code == Code.Ret)
             {
                 if (instructionIndex + 1 == instructions.Count && !hasMultipleReturnStatements)
                 {
-                    Emitter.RemoveInstruction(instructions, instructionIndex);
+                    Emitter.RemoveInstructionWithDependencyReplacement(instructions, instructionIndex, nextInstructionAfterInlinedCode);
                     break;
                 }
 

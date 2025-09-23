@@ -135,6 +135,40 @@ static class DnLibExtensions
         return;
     }
 
+    public static bool IsConv(this Code code) => code
+        is Code.Conv_I
+        or Code.Conv_I1
+        or Code.Conv_I2
+        or Code.Conv_I4
+        or Code.Conv_I8
+        or Code.Conv_Ovf_I
+        or Code.Conv_Ovf_I_Un
+        or Code.Conv_Ovf_I1
+        or Code.Conv_Ovf_I1_Un
+        or Code.Conv_Ovf_I2
+        or Code.Conv_Ovf_I2_Un
+        or Code.Conv_Ovf_I4
+        or Code.Conv_Ovf_I4_Un
+        or Code.Conv_Ovf_I8
+        or Code.Conv_Ovf_I8_Un
+        or Code.Conv_Ovf_U
+        or Code.Conv_Ovf_U_Un
+        or Code.Conv_Ovf_U1
+        or Code.Conv_Ovf_U1_Un
+        or Code.Conv_Ovf_U2
+        or Code.Conv_Ovf_U2_Un  
+        or Code.Conv_Ovf_U4
+        or Code.Conv_Ovf_U4_Un
+        or Code.Conv_Ovf_U8
+        or Code.Conv_Ovf_U8_Un
+        or Code.Conv_U
+        or Code.Conv_U1
+        or Code.Conv_U2
+        or Code.Conv_U4
+        or Code.Conv_U8
+        or Code.Conv_R4
+        or Code.Conv_R8;
+
     public static bool IsCompare(this Code code) => code
         is Code.Ceq
         or Code.Clt

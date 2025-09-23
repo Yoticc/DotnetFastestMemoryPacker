@@ -34,6 +34,25 @@ static class Emitter
         instructions[index] = instructionToSet;
     }
 
+    public static void RemoveInstructionWithDependencyReplacement(IList<Instruction> instructions, int index, Instruction resolveDependenciesWith)
+    {
+        var instructionToRemove = instructions[index];
+        Console.WriteLine($"Remove instruction {instructionToRemove.OpCode.Code}");
+
+        for (var instructionIndex = 0; instructionIndex < instructions.Count; instructionIndex++)
+        {
+            var instruction = instructions[instructionIndex];
+            var operand = instruction.Operand;
+            if (operand == instructionToRemove)
+            {
+                instruction.Operand = resolveDependenciesWith;
+                Console.WriteLine($"Instruction dependency update for {instruction.OpCode.Code}");
+            }
+        }
+
+        instructions.RemoveAt(index);
+    }
+
     public static void RemoveInstruction(IList<Instruction> instructions, int index, DependencyResolveDirection direction = DependencyResolveDirection.Forward)
     {
         var instructionToRemove = instructions[index];
@@ -61,6 +80,12 @@ static class Emitter
     {
         Console.WriteLine($"Remove type '{types[index].Name}'");
         types.RemoveAt(index);
+    }
+
+    public static void RemoveType(IList<TypeDef> types, TypeDef type)
+    {
+        Console.WriteLine($"Remove type '{type.Name}'");
+        types.Remove(type);
     }
 
     public static void AddType(ModuleDef module, TypeDef type)

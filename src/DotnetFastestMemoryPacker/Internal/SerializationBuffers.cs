@@ -11,7 +11,6 @@ namespace DotnetFastestMemoryPacker.Internal;
 // it has a similar idea to ArrayPool, but it is very specific. instead of using buckets, it uses one array that expands as needed.
 // in the middle-execution all methods must be inlined, because ensuring that every method is inlined in its callers
 // in the tier1 or full opts phase is important.
-[InlineAllMembers]
 unsafe class SerializationBuffers
 {
     const int InitialObjectsCapacity = 2 << 10;
