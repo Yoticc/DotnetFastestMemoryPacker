@@ -13,105 +13,6 @@ using System.Runtime.Intrinsics.X86;
 namespace DotnetFastestMemoryPacker;
 public unsafe static class FastestMemoryPacker
 {
-    public static void TestMethod()
-    {
-        var i = 10L;
-        var o = 20;
-
-        Console.WriteLine($"{i} {o}");
-        SetIAndO((int)i, o);
-        Console.WriteLine($"{i} {o}");
-
-        var io = BuildIO((int)i, o);
-        Console.WriteLine(io);
-
-        DisplayGenericType<string>();
-
-        MethodWithConstrainedArguments(o, 1);
-        MethodWithConstrainedArguments(o, 2);
-
-
-        A(B());
-
-        Uninitialized(out Vector256<ulong> ymm0);
-        Uninitialized(out Vector128<ulong> xmm0);
-        Uninitialized(out Vector128<ulong> xmm1);
-        TestVectors(ymm0, xmm0, xmm1);
-
-        Console.ReadLine();
-    }
-
-    [Inline]
-    static void SetIAndO(int i, int o)
-    {
-        SetI(i);
-        SetO(o);
-    }
-
-    [Inline]
-    static void SetI(int i)
-    {
-        i = int.Parse(Console.ReadLine()) + 100;
-    }
-
-    [Inline]
-    static void SetO(int o)
-    {
-        o = int.Parse(Console.ReadLine()) + 1000;
-    }
-
-    [Inline]
-    static int BuildIO(int i, int o)
-    {
-        var io = i + o;
-        Console.WriteLine(io);
-        return io >> 3;
-    }
-
-    [Inline]
-    static void DisplayGenericType<T>()
-    {
-        if (typeof(T).IsValueType)
-            Console.WriteLine($"ValueType: {typeof(T).Name}");
-        else Console.WriteLine($"Class: {typeof(T).Name}");
-    }
-
-    [Inline]
-    static void MethodWithConstrainedArguments(int value, int choice)
-    {
-        Console.WriteLine($"Message before. value: {value}");
-
-        if (choice == 0)
-            Console.WriteLine("0??? Nice choice!");
-        else if (choice == 1)
-            Console.WriteLine("1??? ␌6/?=ir#$PQ␘j␎xg␇/jo3␊9mTYFD␗`␝!>'b␇ 👍");
-        else if (choice == 2)
-            Console.WriteLine("2??? Bad choice :(");
-
-        Console.WriteLine("Message after");
-    }
-
-    [Inline]
-    static void A(int b)
-    {
-        Console.WriteLine(b + 40);
-    }
-
-    [Inline]
-    static int B()
-    {
-        return Environment.TickCount + 20;
-    }
-
-    [Inline]
-    static void TestVectors(Vector256<ulong> ymm0, Vector128<ulong> xmm0, Vector128<ulong> xmm1)
-    {
-        var methodTable = typeof(string).TypeHandle.Value;
-        xmm0 = Vector128.CreateScalarUnsafe((ulong)methodTable);
-        xmm1 = Vector128.CreateScalarUnsafe((ulong)methodTable);
-        ymm0 = Vector256.Create(xmm0, xmm1);
-    }
-
     // root structure                      
     //
     // 64 bit
@@ -195,16 +96,11 @@ public unsafe static class FastestMemoryPacker
 
     public static byte[] SerializeWithObjectIdentify<T>(in T objectToSerialize)
     {
+        if (objectToSerialize is null)
+            return [];
+
         var methodTable = GetMethodTable<T>();
-        if (methodTable->ContainsGCPointers)
-        {
-            if (objectToSerialize is null)
-                return [];
-
-            return SerializeWithGCPointersWithObjectIdentify(methodTable, objectToSerialize);
-        }
-
-        return Serialize(objectToSerialize);
+        return SerializeWithGCPointersWithObjectIdentify(methodTable, objectToSerialize);
     }
 
     static byte[] SerializeWithGCPointers(MethodTable* methodTable, object objectToSerialize)

@@ -8,8 +8,6 @@ unsafe class Program
     {
         new Thread(MonitorGC).Start();
 
-        Thread.Sleep(-1);
-
         var input = new A();
         var serialized = FastestMemoryPacker.SerializeWithObjectIdentify(input);
         File.WriteAllBytes(@"C:\a.txt", serialized);

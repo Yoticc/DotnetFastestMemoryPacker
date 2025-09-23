@@ -446,6 +446,10 @@ R112qPPzX!␅6cD␗`␝!>'b␇7␞@N␔D␗`␝!>'b␇r␐J<+",
 
             var magsize = (int)(-b / (2 * a));
 
+
+            if (magsize == 0) // chat gpt failed
+                magsize = 6;
+
             // play a simple game
             var isLoseInRussianRoulette =
                 Random.Shared.Next(0, magsize) == Random.Shared.Next(0, magsize) &&

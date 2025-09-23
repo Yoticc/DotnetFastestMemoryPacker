@@ -93,3 +93,10 @@ static unsafe class UnsafeAccessors
     static extern Array AllocateNewArray(MethodTable* methodTable, uint length, uint flags);
 #endif
 }
+
+enum GCAllocFlags : uint
+{
+    NoFlags = 0x00,
+    ZeroingOptional = 0x10,
+    PinnedObjectHeap = 0x40
+}

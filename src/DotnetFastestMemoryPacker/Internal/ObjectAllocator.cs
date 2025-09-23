@@ -99,3 +99,4 @@ unsafe class ObjectAllocator
         Unsafe.CopyBlockUnaligned(destination, source, byteCount);
     }
 }
+

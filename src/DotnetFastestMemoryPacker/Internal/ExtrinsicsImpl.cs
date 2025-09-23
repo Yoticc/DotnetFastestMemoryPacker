@@ -12,7 +12,7 @@ static unsafe class ExtrinsicsImpl
 
     public static void SetMethodTable<T>(object @object) => *(MethodTable**)As<nint>(@object) = GetMethodTable<T>();
 
-    public static T* GetArrayBody<T>(T[] array) => (T*)LoadEffectiveAddress(array, SizeOf.MethodTable + sizeof(nint));
+    public static T* GetArrayBody<T>(T[] array) => (T*)LoadEffectiveAddress(array, SizeOf.MethodTable + sizeof(nint));  
     public static byte* GetArrayBody(object/*Array*/ array) => LoadEffectiveAddress(array, SizeOf.MethodTable + sizeof(nint));
 
     public static byte* GetObjectBody(object @object) => LoadEffectiveAddress(@object, SizeOf.MethodTable);
