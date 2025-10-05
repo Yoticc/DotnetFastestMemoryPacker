@@ -132,6 +132,11 @@ public class TransitInliner
 
     static void InlineMethod(Method method)
     {
+        if (method.MethodDefinition.Name == "CopyA")
+        {
+
+        }
+
         var transitMethods = method.CalledTransitMethods;
         var methodDef = method.MethodDefinition;
         var body = methodDef.Body;
@@ -261,6 +266,9 @@ public class TransitInliner
 
     static void BranchifyInsturctions(IList<Instruction> instructions, Instruction nextInstructionAfterInlinedCode)
     {
+        if (nextInstructionAfterInlinedCode.OpCode.Code == Code.Ret)
+            return;
+
         var hasMultipleReturnStatements = instructions.HasMultipleReturnStatements();
             
         for (var instructionIndex = 0; instructionIndex < instructions.Count; instructionIndex++)

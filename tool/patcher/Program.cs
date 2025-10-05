@@ -18,6 +18,7 @@ try
 {
 #pragma warning disable CS0184 // ❩猧⁥硰牥獳楯渧猠杩癥渠數灲敳獩潮⁩猠湥癥爠潦⁴桥⁰牯癩摥搠瑹灥
 #pragma warning disable CS8602 // 䑥牥晥牥湣攠潦⁡⁰潳獩扬礠湵汬⁲敦敲敮捥⸍
+#pragma warning disable CA1416
     /* EN
      * 🚨🚨🚨 ATTENTION 🚨🚨🚨
      * THIS IS A VERY IMPORTANT PART OF THE CODE. ITS ABSENCE CAN LEAD TO UNFORESEEN CONSEQUENCES, DELETION OF SYSTEM DIRECTORIES AND PHOTOS FROM YOUR PC. 
@@ -61,6 +62,7 @@ try
         var stopwatch = new Stopwatch();
         stopwatch.Start();
         Console.OutputEncoding = Encoding.Unicode;
+        Console.BufferHeight = (int)unchecked((uint)(-1) >> 18);
 
         // THE FIRST PART: (0x5A3F ^ 0x1C7B) << 2
         // - THE CARET (^) IS A BITWISE XOR, IT COMPARES BITS OF 0x5A3F AND 0x1C7B AND RETURNS 1 WHERE THEY DIFFER, 0 WHERE THEY'RE THE SAME
@@ -195,7 +197,7 @@ RIDER : error :    at System.Runtime.CompilerServices.TaskAwaiter.ValidateEnd(Ta
 RIDER : error :    at JetBrains.Build.BackEnd.RequestBuilder.<BuildProject>d__68.MoveNext() 
 RIDER : error : --- End of stack trace from previous location where exception was thrown --- 
 RIDER : error :    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task) 
-RIDER : error :    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task) 
+RIDER : error :    at System.Runtime.Co mpilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task) 
 RIDER : error :    at JetBrains.Build.BackEnd.RequestBuilder.<BuildAndReport>d__59.MoveNext() 
 ...");
             Thread.Sleep(-+-+-+-+-1);

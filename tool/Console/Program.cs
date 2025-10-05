@@ -72,7 +72,7 @@ unsafe class Program
             var dgen0 = ngen0 - gen0;
             if (dgen0 > 0)
             {
-                //Console.WriteLine($"GC collected Gen0 {dgen0} times");
+                Console.WriteLine($"GC collected Gen0 {dgen0} times");
                 gen0 = ngen0;
             }
 
@@ -80,7 +80,7 @@ unsafe class Program
             var dgen1 = ngen1 - gen1;
             if (dgen1 > 0)
             {
-                //Console.WriteLine($"GC collected Gen1 {dgen1} times");
+                Console.WriteLine($"GC collected Gen1 {dgen1} times");
                 gen1 = ngen1;
             }
 
@@ -88,7 +88,7 @@ unsafe class Program
             var dgen2 = ngen2 - gen2;
             if (dgen2 > 0)
             {
-                //Console.WriteLine($"GC collected Gen2 {dgen2} times");
+                Console.WriteLine($"GC collected Gen2 {dgen2} times");
                 gen2 = ngen2;
             }
         }

@@ -1,5 +1,6 @@
 ﻿using dnlib.DotNet;
 using dnlib.DotNet.Emit;
+using System.Security.Authentication;
 
 // logs every action so now everyone looks and thinks you are a real 1337 badass hacker
 static class Emitter
@@ -34,45 +35,57 @@ static class Emitter
         instructions[index] = instructionToSet;
     }
 
-    public static void RemoveInstructionWithDependencyReplacement(IList<Instruction> instructions, int index, Instruction resolveDependenciesWith)
+    static void ResolveDependency(IList<Instruction> instructions, Instruction oldDependency, Instruction newDependency)
     {
-        var instructionToRemove = instructions[index];
-        Console.WriteLine($"Remove instruction {instructionToRemove.OpCode.Code}");
-
         for (var instructionIndex = 0; instructionIndex < instructions.Count; instructionIndex++)
         {
             var instruction = instructions[instructionIndex];
             var operand = instruction.Operand;
-            if (operand == instructionToRemove)
+
+            if (operand is Instruction)
             {
-                instruction.Operand = resolveDependenciesWith;
-                Console.WriteLine($"Instruction dependency update for {instruction.OpCode.Code}");
+                if (operand == oldDependency)
+                {
+                    instruction.Operand = newDependency;
+                    Console.WriteLine($"Instruction dependency update for {instruction.OpCode.Code}");
+                }
+            }
+            else if (operand is Instruction[] operandInstructions)
+            {
+                var caseCount = operandInstructions.Length;
+                for (var caseIndex = 0; caseIndex < caseCount; caseIndex++)
+                {
+                    var operandInstruction = operandInstructions[caseIndex];
+                    if (operandInstruction == oldDependency)
+                    {
+                        operandInstructions[caseIndex] = newDependency;
+                        Console.WriteLine($"Instruction dependency update for {instruction.OpCode.Code}");
+                    }
+                }
             }
         }
+    }
 
+    public static void RemoveInstructionWithDependencyReplacement(IList<Instruction> instructions, int index, Instruction resolveDependenciesWith)
+    {
+        var instructionToRemove = instructions[index];
+        ResolveDependency(instructions, instructionToRemove, resolveDependenciesWith);
+
+        Console.WriteLine($"Remove instruction {instructionToRemove.OpCode.Code}");
         instructions.RemoveAt(index);
     }
 
     public static void RemoveInstruction(IList<Instruction> instructions, int index, DependencyResolveDirection direction = DependencyResolveDirection.Forward)
     {
         var instructionToRemove = instructions[index];
-        Console.WriteLine($"Remove instruction {instructionToRemove.OpCode.Code}");
 
         if (direction.IsIndexSuitableForResolving(instructions, index))
         {
             var resolvedDependency = direction.GetResolvedDependency(instructions, index);
-            for (var instructionIndex = 0; instructionIndex < instructions.Count; instructionIndex++)
-            {
-                var instruction = instructions[instructionIndex];
-                var operand = instruction.Operand;
-                if (operand == instructionToRemove)
-                {
-                    instruction.Operand = resolvedDependency;
-                    Console.WriteLine($"Instruction dependency update for {instruction.OpCode.Code}, direction: {direction}");
-                }
-            }
+            ResolveDependency(instructions, instructionToRemove, resolvedDependency);
         }
 
+        Console.WriteLine($"Remove instruction {instructionToRemove.OpCode.Code}");
         instructions.RemoveAt(index);
     }
 

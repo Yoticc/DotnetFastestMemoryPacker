@@ -1,7 +1,6 @@
 ﻿global using static DotnetFastestMemoryPacker.Internal.ExtrinsicsImpl;
 global using static PatcherReference.Extrinsics;
 using DotnetFastestMemoryPacker.Internal;
-using PatcherReference;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
@@ -43,6 +42,7 @@ public unsafe static class FastestMemoryPacker
         Pinnable(out object @object);
 
         MethodTable* methodTable;
+        // thank you, EgorBo, for such excellent optimization:
         // value type is the only instantiation that can be handled by jit as a constraintable branch.
         // unfortunately, it cannot generate a direct path for unmanaged structures unless additional constraints are applied to T,
         // but obtaining a method table for structures quickly enough to eliminate this problem.

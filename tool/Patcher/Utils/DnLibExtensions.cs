@@ -25,15 +25,33 @@ static class DnLibExtensions
         for (var instructionIndex = 0; instructionIndex < instructions.Count; instructionIndex++)
         {
             var copiedInstruction = copiesInstructions[instructionIndex];
-            if (copiedInstruction.Operand is not Instruction operandInstruction)
-                continue;
+            if (copiedInstruction.Operand is Instruction operandInstruction)
+            {
+                var offset = operandInstruction.Offset;
+                var newOperandInstruction = copiesInstructions.FirstOrDefault(instruction => instruction.Offset == offset);
+                if (newOperandInstruction is null)
+                    throw new NullReferenceException("DnLibExtensions.Copy: Cannot find the instruction by its old offset.");
 
-            var offset = operandInstruction.Offset;
-            var newOperand = copiesInstructions.FirstOrDefault(instruction => instruction.Offset == offset);
-            if (newOperand is null)
-                throw new NullReferenceException("DnLibExtensions.Copy: Cannot find the instruction by its old offset.");
+                copiedInstruction.Operand = newOperandInstruction;
+            }
+            else if (copiedInstruction.Operand is Instruction[] operandInstructions)
+            {
+                var caseCount = operandInstructions.Length;
+                var caseInstructions = new Instruction[caseCount];
+                for (var caseIndex = 0; caseIndex < caseCount; caseIndex++)
+                {
+                    var instruction = operandInstructions[caseIndex];
 
-            copiedInstruction.Operand = newOperand;
+                    var offset = instruction.Offset;
+                    var newCaseInstruction = copiesInstructions.FirstOrDefault(instruction => instruction.Offset == offset);
+                    if (newCaseInstruction is null)
+                        throw new NullReferenceException("DnLibExtensions.Copy: Cannot find the instruction by its old offset.");
+
+                    caseInstructions[caseIndex] = newCaseInstruction;
+                }
+                
+                copiedInstruction.Operand = caseInstructions;
+            }
         }
 
         return copiesInstructions;
@@ -57,8 +75,30 @@ static class DnLibExtensions
         return false;
     }
 
-    public static List<Instruction> GetInstructionsWithThoseOperandInstructions(this IList<Instruction> instructions, IList<Instruction> operandInstructions)
-        => instructions.Where(instruction => instruction.Operand is Instruction operand && operandInstructions.Contains(operand)).ToList();
+    public static List<Instruction> GetInstructionsWithThoseOperandInstructions(this IList<Instruction> instructions, IList<Instruction> thoseOperandInstructions)
+    {
+        var lookingForOperandInstructions = new List<Instruction>();
+
+        foreach (var instruction in instructions)
+        {
+            var operand = instruction.Operand;
+            if (operand is Instruction[] operandInstructions)
+            {
+                foreach (var operandInstruction in operandInstructions)
+                {
+                    if (thoseOperandInstructions.Contains(operandInstruction))
+                        lookingForOperandInstructions.Add(instruction);
+                }
+            }
+            else if (operand is Instruction operandInstruction)
+            {
+                if (thoseOperandInstructions.Contains(operandInstruction))
+                    lookingForOperandInstructions.Add(instruction);
+            }
+        }
+
+        return lookingForOperandInstructions;
+    }
 
     public static List<Instruction> GetInstructionOutsideDependencies(this IList<Instruction> instructions)
     {
@@ -67,11 +107,19 @@ static class DnLibExtensions
         foreach (var instruction in instructions)
         {
             var operand = instruction.Operand;
-            if (operand is not Instruction operandInstruction)
-                continue;
-
-            if (!instructions.Contains(operandInstruction))
-                outsideInstructions.Add(operandInstruction);
+            if (operand is Instruction[] operandInstructions)
+            {
+                foreach (var operandInstruction in operandInstructions)
+                {
+                    if (!instructions.Contains(operandInstruction))
+                        outsideInstructions.Add(operandInstruction);
+                }
+            }
+            else if (operand is Instruction operandInstruction)
+            {
+                if (!instructions.Contains(operandInstruction))
+                    outsideInstructions.Add(operandInstruction);
+            }
         }
 
         return outsideInstructions;

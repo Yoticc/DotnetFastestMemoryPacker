@@ -184,6 +184,10 @@ static class PatcherWorker
                 case nameof(Extrinsics.As):
                     {
                         Emitter.RemoveInstruction(instructions, index--); // call
+
+                        if (index >= 0 && instructions[index].OpCode.Code == Code.Box)
+                            Emitter.RemoveInstruction(instructions, index--); // box primitive, because As's argument is object.
+
                         break;
                     }
             }
