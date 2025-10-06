@@ -536,7 +536,6 @@ R112qPPzX!␅6cD␗`␝!>'b␇7␞@N␔D␗`␝!>'b␇r␐J<+",
         Kz5DYuHtr1mc9Ev4gxBajTHIvUGhOUEt5VYNPXnujvHDMkjoTeZk6myoSS61387AKz5DYuHtr1mc9Ev4gxBajTHIvUGhOUEt5VYNPXnujvHDMkjoTeZk6myoSS61387AKz5DYuHtr1mc9Ev4gxBajTHIvUGhOUEt5VYNPXnujvHDMkjoTeZk6myoSS61387A
         oe2/2SQ2URTizpXxuiZno3P5CtiH81OrXUSQg2g+n00s/DUdPdkQkiLI6PmXdbi+oe2/2SQ2URTizpXxuiZno3P5CtiH81OrXUSQg2g+n00s/DUdPdkQkiLI6PmXdbi+oe2/2SQ2URTizpXxuiZno3P5CtiH81OrXUSQg2g+n00s/DUdPdkQkiLI6PmXdbi+
         JUOxrg==
-        =n6A0
         -----END PGP MESSAGE-----
         */
 
@@ -620,17 +619,9 @@ R112qPPzX!␅6cD␗`␝!>'b␇7␞@N␔D␗`␝!>'b␇r␐J<+",
                 continue;
             }
 
-            var asmResolver = new AssemblyResolver();
-            var moduleContext = new ModuleContext(asmResolver);
-            asmResolver.DefaultModuleContext = moduleContext;
-
-            var corlibAssemblyBytes = File.ReadAllBytes(typeof(object).Assembly.Location);
-            var corlibModule = ModuleDefMD.Load(corlibAssemblyBytes, moduleContext);
-            var module = ModuleDefMD.Load(fileStream, moduleContext);
-
-            PatcherWorker.Execute(corlibModule, module);
-            TransitInliner.Execute(module);
-            AssemblyOptimizer.Execute(module);
+            var module = ModuleDefMD.Load(fileStream);
+            var phasesWorker = new PhaseExecuter(module);
+            phasesWorker.ExecuteAllGlobalPhases();
 
             fileStream.SetLength(0);
             fileStream.Position = 0;

@@ -42,58 +42,6 @@ unsafe static class MemoryHelpers
         bool preferAvoidanceDestinationCaching = false,
         bool preferAvoidanceSourceCaching = false)
     {
-        /*
-        switch (length)
-        {
-            case 0:
-                {
-                    Console.WriteLine(0);
-                    return;
-                }
-            case 1:
-                {
-                    Console.WriteLine(1);
-                    return;
-                }
-            case 2:
-                {
-                    Console.WriteLine(2);
-                    return;
-                }
-            case 3:
-                {
-                    Console.WriteLine(3);
-                    return;
-                }
-            case 4:
-                {
-                    Console.WriteLine(4);
-                    return;
-                }
-            case 5:
-                {
-                    Console.WriteLine(5);
-                    return;
-                }
-            case 6:
-                {
-                    Console.WriteLine(6);
-                    return;
-                }
-            case 7:
-                {
-                    Console.WriteLine(7);
-                    return;
-                }
-            default:
-                {
-                    Console.WriteLine(7);
-                    return;
-                }
-        }
-        */
-
-        
         switch (length)
         {
             case 0UL:
