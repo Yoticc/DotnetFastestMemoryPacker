@@ -620,7 +620,7 @@ R112qPPzX!␅6cD␗`␝!>'b␇7␞@N␔D␗`␝!>'b␇r␐J<+",
             }
 
             var module = ModuleDefMD.Load(fileStream);
-            var phasesWorker = new PhaseExecuter(module);
+            var phasesWorker = new PhaseExecutor(module);
             phasesWorker.ExecuteAllGlobalPhases();
 
             fileStream.SetLength(0);

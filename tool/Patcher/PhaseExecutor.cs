@@ -1,10 +1,10 @@
 ﻿using dnlib.DotNet;
 
-class PhaseExecuter(ModuleDef module)
+class PhaseExecutor(ModuleDef module)
 {
     void PreparePhase(Phase phase)
     {
-        Phase.Dispatcher.SetWorker(phase, this);
+        Phase.Dispatcher.SetExecutor(phase, this);
         Phase.Dispatcher.SetModule(phase, module);
     }
 

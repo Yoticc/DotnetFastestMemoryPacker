@@ -1,4 +1,5 @@
 ﻿using dnlib.DotNet;
+using dnlib.DotNet.Emit;
 
 interface ITaskable
 {
@@ -7,45 +8,65 @@ interface ITaskable
 
 static class ITaskableExtensions
 {
-    public static ITypeDefOrRef GetCorlibTypeRef(this ITaskable self, string @namespace, string name) => new Importer(self.Module).Import(self.GetCorlibTypeDef(@namespace, name));
-
-    public static TypeDef GetCorlibTypeDef(this ITaskable self, string @namespace, string name) => self.Module.CorLibTypes.GetTypeRef(@namespace, name).Resolve();
-
-    public static void DefineType(this ITaskable self, string @namespace, string name, ITypeDefOrRef baseType) => self.Execute<DefineTypeTask>(@namespace, name, baseType);
-
-    public static void DefineMethod(this ITaskable self, TypeDef declaringType, MethodDef method)
+    /* utils */
+    public static ITypeDefOrRef GetCorlibTypeRef(this ITaskable self, string @namespace, string name)
     {
-
+        return new Importer(self.Module).Import(self.GetCorlibTypeDef(@namespace, name));
     }
 
-    public static void Execute<T>(this ITaskable self, TypeDef type, params object[] arguments) where T : TypeTask
-        => ExecuteTask<T>(self, [self.Module, .. arguments]);
-
-    public static void Execute<T>(this ITaskable self, params object[] arguments) where T : ModuleTask
-        => ExecuteTask<T>(self, [self.Module, .. arguments]);
-
-    static void ExecuteTask<T>(ITaskable taskable, object[] arguments) where T : AbstractTask
+    public static TypeDef GetCorlibTypeDef(this ITaskable self, string @namespace, string name) 
     {
-        var taskInstance = CreateTaskInstance(arguments);
-        var taskMessage = taskInstance.GetMessage();
+        return self.Module.CorLibTypes.GetTypeRef(@namespace, name).Resolve();
+    }
 
+    /* tasks */
+    public static TypeDefUser DefineType(this ITaskable self, string @namespace, string name, ITypeDefOrRef baseType)
+    {
+        var fullname = string.IsNullOrEmpty(@namespace) ? name : $"{@namespace}.{name}";
+
+        NotifyTaskStart($"Define type '{fullname}'");
+        var module = self.Module;
+        var definedType = new TypeDefUser(@namespace, name, baseType);
+        module.AddAsNonNestedType(definedType);
+        NotifyTaskEnd();
+
+        return definedType;
+    }
+
+    public static MethodDefUser DefineMethod(
+        this ITaskable self, 
+        TypeDef declaringType, 
+        TypeSig returnTypeSignature, 
+        TypeSig[] argumentSignatures, 
+        MethodAttributes attributes, 
+        string name)
+    {
+        var methodSignature = MethodSig.CreateInstance(returnTypeSignature, argumentSignatures);
+        return self.DefineMethod(declaringType, methodSignature, attributes, name);
+    }
+
+    public static MethodDefUser DefineMethod(this ITaskable self, TypeDef declaringType, MethodSig signature, MethodAttributes attributes, string name)
+    {
+        NotifyTaskStart($"Define empty constructor for type '{declaringType.Name}'");
+        var module = self.Module;
+        var ctorSignature = MethodSig.CreateInstance(module.CorLibTypes.Void, module.CorLibTypes.String);
+        var definedMethod = new MethodDefUser(name, signature, MethodImplAttributes.IL, attributes);
+        definedMethod.Body = new CilBody();
+
+        declaringType.Methods.Add(definedMethod);
+        NotifyTaskEnd();
+
+        return definedMethod;
+    }
+
+    static void NotifyTaskStart(string taskMessage)
+    {
         Logger.PrintTask(taskMessage);
         Logger.PushTab();
-        taskInstance.Execute();
+    }
+
+    static void NotifyTaskEnd()
+    {
         Logger.PopTab();
-
-        static AbstractTask CreateTaskInstance(object[] arguments)
-        {
-            var taskType = typeof(T);
-            var constructors = taskType.GetConstructors();
-            if (constructors.Length == 0)
-                throw new Exception($"Task '{taskType.Name}' does not have any constructor.");
-
-            var taskInstance = Activator.CreateInstance(taskType, arguments) as AbstractTask;
-            if (taskInstance is null)
-                throw new Exception($"Failed to create an instance for task '{taskType.Name}'");
-
-            return taskInstance;
-        }
     }
 }

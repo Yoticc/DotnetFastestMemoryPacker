@@ -7,6 +7,8 @@ record DefineEmptyConstructorTask(TypeDef type) : TypeTask(type)
     {
         var attributeType = this.GetCorlibTypeRef("System", "Attribute");
 
+        
+
         var module = type.Module;
         var ctorSignature = MethodSig.CreateInstance(module.CorLibTypes.Void, module.CorLibTypes.String);
         var ctorAttributes = MethodAttributes.Public | MethodAttributes.RTSpecialName | MethodAttributes.SpecialName | MethodAttributes.HideBySig;

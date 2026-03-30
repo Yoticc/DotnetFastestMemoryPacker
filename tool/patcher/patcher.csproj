@@ -28,8 +28,4 @@
     <ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Tasks\InstructionsTasks\" />
-  </ItemGroup>
-
 </Project>

@@ -96,6 +96,19 @@ public unsafe static class FastestMemoryPacker
 
     public static byte[] SerializeWithObjectIdentify<T>(in T objectToSerialize)
     {
+        /**/
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+        foreach (var assembly in assemblies)
+        {
+            var types = assembly.GetTypes();
+            foreach (var type in types)
+            {
+                var mt = (MethodTable*)type.TypeHandle.Value;
+
+            }
+        }
+        /**/
+
         if (objectToSerialize is null)
             return [];
 
