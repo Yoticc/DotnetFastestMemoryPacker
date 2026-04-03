@@ -1,19 +1,19 @@
 ﻿using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 
-record DefineIgnoresAccessChecksPhase() : Phase("Define IgnoresAccessChecksToMethod")
+partial class Program
 {
-    public override void Execute()
+    void DefineIgnoresAccessChecksPhase()
     {
-        var importer = new Importer(Module);
+        var importer = new Importer(module);
         var attributeType = GetCorlibTypeDef("System", "Attribute");
         var attributeCtorDef = attributeType.FindDefaultConstructor();
         var attributeCtorRef = importer.Import(attributeCtorDef);
 
         DefineType("System.Runtime.CompilerServices", "IgnoresAccessChecksToAttribute", importer.Import(attributeType));
-        var definedType = Module.Find("System.Runtime.CompilerServices.IgnoresAccessChecksToAttribute", false);
+        var definedType = module.Find("System.Runtime.CompilerServices.IgnoresAccessChecksToAttribute", false);
 
-        var ctorSignature = MethodSig.CreateInstance(Module.CorLibTypes.Void, Module.CorLibTypes.String);
+        var ctorSignature = MethodSig.CreateInstance(module.CorLibTypes.Void, module.CorLibTypes.String);
         var ctorAttributes = MethodAttributes.Public | MethodAttributes.RTSpecialName | MethodAttributes.SpecialName | MethodAttributes.HideBySig;
         var constructor = new MethodDefUser(".ctor", ctorSignature, MethodImplAttributes.IL, ctorAttributes);
         var body = constructor.Body = new CilBody();
@@ -21,10 +21,10 @@ record DefineIgnoresAccessChecksPhase() : Phase("Define IgnoresAccessChecksToMet
         instructions.Add(new Instruction(OpCodes.Ldarg_0));
         instructions.Add(new Instruction(OpCodes.Call, attributeCtorRef));
         instructions.Add(new Instruction(OpCodes.Ret));
-        Emitter.AddMethod(definedType, constructor);
+        AddMethod(definedType, constructor);
 
         var accessToLibrary = "System.Private.CoreLib";
-        var moduleAttribute = new CustomAttribute(constructor, (CAArgument[])[new CAArgument(Module.CorLibTypes.String, (UTF8String)accessToLibrary)]);
-        Module.Assembly.CustomAttributes.Add(moduleAttribute);
+        var moduleAttribute = new CustomAttribute(constructor, (CAArgument[])[new CAArgument(module.CorLibTypes.String, (UTF8String)accessToLibrary)]);
+        module.Assembly.CustomAttributes.Add(moduleAttribute);
     }
 }

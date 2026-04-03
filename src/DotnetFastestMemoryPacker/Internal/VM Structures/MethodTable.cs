@@ -30,10 +30,8 @@ unsafe struct MethodTable
     public Type GetRuntimeType()
     {
         Type type;
-#if NET9_0_OR_GREATER
         type = AuxiliaryData->ExposedRuntimeType;
         if (type is null)
-#endif
             type = Type.GetTypeFromHandle(GetRuntimeTypeHandle());
 
         return type;

@@ -1,14 +1,14 @@
 ﻿using dnlib.DotNet.Emit;
 
-static class InstructionsOptimizer
+partial class Program
 {
-    public static void OptimizeConditionsAndBranches(IList<Instruction> instructions)
+    void OptimizeConditionsAndBranches(IList<Instruction> instructions)
     {
         OptimizeComparisonForConstants(instructions);
         OptimizeConditionalBranches(instructions);
     }
 
-    static void OptimizeComparisonForConstants(IList<Instruction> instructions)
+    void OptimizeComparisonForConstants(IList<Instruction> instructions)
     {
         for (var instructionIndex = 2; instructionIndex < instructions.Count; instructionIndex++)
         {
@@ -33,16 +33,16 @@ static class InstructionsOptimizer
 
             var value = condition ? 1 : 0;
             instruction = new Instruction(OpCodes.Ldc_I4, value);
-            Emitter.SetInstruction(instructions, instructionIndex, instruction);
+            SetInstruction(instructions, instructionIndex, instruction);
 
-            Emitter.RemoveInstruction(instructions, instructionIndex - 1);
-            Emitter.RemoveInstruction(instructions, instructionIndex - 2);
+            RemoveInstruction(instructions, instructionIndex - 1);
+            RemoveInstruction(instructions, instructionIndex - 2);
 
             instructionIndex -= 2;
         }
     }
 
-    public static void OptimizeConditionalBranches(IList<Instruction> instructions)
+    void OptimizeConditionalBranches(IList<Instruction> instructions)
     {
         for (var instructionIndex = 2; instructionIndex < instructions.Count; instructionIndex++)
         {
@@ -74,15 +74,15 @@ static class InstructionsOptimizer
                 instructionIndex -= 2;
 
                 while (instructionIndex < instructions.Count && instructions[instructionIndex] != branchTagetInstruction)
-                    Emitter.RemoveInstruction(instructions, instructionIndex);
+                    RemoveInstruction(instructions, instructionIndex);
 
                 instructionIndex--;
             }
             else 
             {
-                Emitter.RemoveInstruction(instructions, instructionIndex);
-                Emitter.RemoveInstruction(instructions, instructionIndex - 1);
-                Emitter.RemoveInstruction(instructions, instructionIndex - 2);
+                RemoveInstruction(instructions, instructionIndex);
+                RemoveInstruction(instructions, instructionIndex - 1);
+                RemoveInstruction(instructions, instructionIndex - 2);
                 instructionIndex -= 3;
             }
         }
@@ -111,14 +111,14 @@ static class InstructionsOptimizer
                 instructionIndex -= 1;
 
                 while (instructionIndex < instructions.Count && instructions[instructionIndex] != branchTagetInstruction)
-                    Emitter.RemoveInstruction(instructions, instructionIndex);
+                    RemoveInstruction(instructions, instructionIndex);
 
                 instructionIndex--;
             }
             else
             {
-                Emitter.RemoveInstruction(instructions, instructionIndex);
-                Emitter.RemoveInstruction(instructions, instructionIndex - 1);
+                RemoveInstruction(instructions, instructionIndex);
+                RemoveInstruction(instructions, instructionIndex - 1);
                 instructionIndex -= 2;
             }
         }

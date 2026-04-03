@@ -8,7 +8,7 @@ using System.Runtime.Intrinsics.X86;
 
 [module: SkipLocalsInit]
 
-#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
+#pragma warning disable CS8500
 namespace DotnetFastestMemoryPacker;
 public unsafe static class FastestMemoryPacker
 {
@@ -96,19 +96,6 @@ public unsafe static class FastestMemoryPacker
 
     public static byte[] SerializeWithObjectIdentify<T>(in T objectToSerialize)
     {
-        /**/
-        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-        foreach (var assembly in assemblies)
-        {
-            var types = assembly.GetTypes();
-            foreach (var type in types)
-            {
-                var mt = (MethodTable*)type.TypeHandle.Value;
-
-            }
-        }
-        /**/
-
         if (objectToSerialize is null)
             return [];
 

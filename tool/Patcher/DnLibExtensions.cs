@@ -1,6 +1,5 @@
 ﻿using dnlib.DotNet;
 using dnlib.DotNet.Emit;
-using System.Security.AccessControl;
 
 static class DnLibExtensions
 {

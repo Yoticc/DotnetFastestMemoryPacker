@@ -1,9 +1,9 @@
 ﻿using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 
-static class InstructionsHelper
+partial class Program
 {
-    public static void ReplaceArgumentWithConstant(IList<Instruction> instructions, Parameter constantArgument, Instruction/*ldc.i4*/ constantValueInstruction)
+    void ReplaceArgumentWithConstant(IList<Instruction> instructions, Parameter constantArgument, Instruction/*ldc.i4*/ constantValueInstruction)
     {
         if (constantValueInstruction.OpCode.Code != Code.Ldc_I4)
             throw new NotImplementedException("InstructionsHelper.ReplaceArgumentWithConstant does not support instruction other than ldc.i4");
@@ -20,11 +20,11 @@ static class InstructionsHelper
             if (argument != constantArgument)
                 continue;
 
-            Emitter.SetInstruction(instructions, instructionIndex, constantValueInstruction.Clone());
+            SetInstruction(instructions, instructionIndex, constantValueInstruction.Clone());
         }
     }
 
-    public static void ReplaceLocalsWithConstants(IList<Instruction> instructions, Local constantLocal, Instruction/*ldc.i4*/ constantValueInstruction)
+    void ReplaceLocalsWithConstants(IList<Instruction> instructions, Local constantLocal, Instruction/*ldc.i4*/ constantValueInstruction)
     {
         if (constantValueInstruction.OpCode.Code != Code.Ldc_I4)
             throw new NotImplementedException("InstructionsHelper.ReplaceArgumentWithConstant does not support instruction other than ldc.i4");
@@ -41,11 +41,11 @@ static class InstructionsHelper
             if (local != constantLocal)
                 continue;
 
-            Emitter.SetInstruction(instructions, instructionIndex, constantValueInstruction.Clone());
+            SetInstruction(instructions, instructionIndex, constantValueInstruction.Clone());
         }
     }
 
-    public static void ReplaceLocal(IList<Instruction> instructions, Local fromLocal, Local toLocal)
+    void ReplaceLocal(IList<Instruction> instructions, Local fromLocal, Local toLocal)
     {
         for (var instructionIndex = 0; instructionIndex < instructions.Count; instructionIndex++)
         {
@@ -60,7 +60,7 @@ static class InstructionsHelper
         }
     }
 
-    public static void ReplaceLocal(IList<Instruction> instructions, Local fromLocal, Parameter toArgument)
+    void ReplaceLocal(IList<Instruction> instructions, Local fromLocal, Parameter toArgument)
     {
         for (var instructionIndex = 0; instructionIndex < instructions.Count; instructionIndex++)
         {
@@ -76,7 +76,7 @@ static class InstructionsHelper
         }
     }
 
-    public static void ReplaceArgument(IList<Instruction> instructions, Parameter fromArgument, Parameter toArgument)
+    void ReplaceArgument(IList<Instruction> instructions, Parameter fromArgument, Parameter toArgument)
     {
         for (var instructionIndex = 0; instructionIndex < instructions.Count; instructionIndex++)
         {
@@ -91,7 +91,7 @@ static class InstructionsHelper
         }
     }
 
-    public static void ReplaceArgument(IList<Instruction> instructions, Parameter fromArgument, Local toLocal)
+    void ReplaceArgument(IList<Instruction> instructions, Parameter fromArgument, Local toLocal)
     {
         for (var instructionIndex = 0; instructionIndex < instructions.Count; instructionIndex++)
         {
@@ -107,7 +107,7 @@ static class InstructionsHelper
         }
     }
 
-    public static void ReplaceGeneric(IList<Instruction> instructions, GenericParam genericParameter, TypeSig instantiationGenericArgument)
+    void ReplaceGenericWithArgument(IList<Instruction> instructions, GenericParam genericParameter, TypeSig instantiationGenericArgument)
     {
         foreach (var instruction in instructions)
         {
