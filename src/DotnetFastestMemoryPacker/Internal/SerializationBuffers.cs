@@ -1,12 +1,7 @@
-﻿using PatcherReference;
-using System;
-using System.Collections.Specialized;
+﻿using DotnetFastestMemoryPacker;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-
-#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
-namespace DotnetFastestMemoryPacker.Internal;
 
 // it has a similar idea to ArrayPool, but it is very specific. instead of using buckets, it uses one array that expands as needed.
 // in the middle-execution all methods must be inlined, because ensuring that every method is inlined in its callers

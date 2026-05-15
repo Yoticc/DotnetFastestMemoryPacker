@@ -8,6 +8,7 @@
 	<NoWin32Manifest>true</NoWin32Manifest>
 	<ProduceReferenceAssembly>False</ProduceReferenceAssembly>
 	<Configurations>Release</Configurations>
+	<Platforms>x64</Platforms>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -15,10 +16,12 @@
     <IsAotCompatible>False</IsAotCompatible>
   </PropertyGroup>
 	
+	<!--
   <Target Name="RunPatcher" AfterTargets="AfterBuild">
 	<Exec Command="echo running patcher..." />
-	<Exec Command="start &quot;&quot; &quot;..\..\tool\Patcher\bin\Release\$(TargetFramework)\Patcher.exe&quot;" />
+	<Exec Command="start &quot;&quot; &quot;..\..\tool\Patcher\bin\x64\Release\$(TargetFramework)\Patcher.exe&quot;" />
   </Target>
+  -->
 
   <ItemGroup>
 	<ProjectReference Include="..\..\ref\PatcherReference\PatcherReference.csproj" Private="false" />

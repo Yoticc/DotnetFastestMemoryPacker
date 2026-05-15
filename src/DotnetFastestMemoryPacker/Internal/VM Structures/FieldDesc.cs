@@ -1,7 +1,5 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace DotnetFastestMemoryPacker.Internal;
-
 [StructLayout(LayoutKind.Explicit)]
 unsafe struct FieldDesc
 {

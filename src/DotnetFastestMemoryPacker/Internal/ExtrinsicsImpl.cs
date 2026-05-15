@@ -1,7 +1,5 @@
-﻿#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
-using PatcherReference;
-
-namespace DotnetFastestMemoryPacker.Internal;
+﻿global using static PatcherReference.Extrinsics;
+global using static ExtrinsicsImpl;
 static unsafe class ExtrinsicsImpl
 {
     public static MethodTable* GetMethodTable<T>() => (MethodTable*)GetTypeHandle<T>().Value;

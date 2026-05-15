@@ -1,14 +1,17 @@
-﻿global using static DotnetFastestMemoryPacker.Internal.ExtrinsicsImpl;
-global using static PatcherReference.Extrinsics;
-using DotnetFastestMemoryPacker.Internal;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
 [module: SkipLocalsInit]
 
-#pragma warning disable CS8500
+
+
+
+
+
+
+
 namespace DotnetFastestMemoryPacker;
 public unsafe static class FastestMemoryPacker
 {
@@ -179,7 +182,7 @@ public unsafe static class FastestMemoryPacker
                     while (true)
                     {
                         var parentMethodTable = methodTable->ParentMethodTable;
-                        if (parentMethodTable is null) // it means that current methodTable is object
+                        if (parentMethodTable is null)
                             break;
 
                         var parentClass = parentMethodTable->Class;
@@ -332,7 +335,7 @@ public unsafe static class FastestMemoryPacker
                     while (true)
                     {
                         var parentMethodTable = methodTable->ParentMethodTable;
-                        if (parentMethodTable is null) // it means that current methodTable is object
+                        if (parentMethodTable is null)
                             break;
 
                         var parentClass = parentMethodTable->Class;
@@ -388,9 +391,9 @@ public unsafe static class FastestMemoryPacker
         for (objectIndex = 0U; objectIndex < objectsCount; objectIndex++)
         {
             @object = Unsafe.Add(ref Unsafe.AsRef<object>(objects), objectIndex);
-            var size = sizes[objectIndex];            
+            var size = sizes[objectIndex];
 
-            Unsafe.CopyBlockUnaligned(bytes + bytesOffset, GetObjectBody(@object), size);       
+            Unsafe.CopyBlockUnaligned(bytes + bytesOffset, GetObjectBody(@object), size);
             bytesOffset += size;                                                                
         }                                                                                       
                                                                                                 
@@ -444,9 +447,7 @@ public unsafe static class FastestMemoryPacker
                 @object = GC.AllocateUninitializedArray<byte>((int)(objectSize - SizeOf.ArrayLength));
                 SetMethodTable(@object, methodTable);
 
-                var destination = GetObjectBody(@object);
-                var source = input;
-                Unsafe.CopyBlock(destination, source, objectSize);
+                Unsafe.CopyBlock(destination: GetObjectBody(@object), source: input, objectSize);
             }
             else
             {
@@ -458,9 +459,7 @@ public unsafe static class FastestMemoryPacker
             @object = RuntimeHelpers.GetUninitializedObject(typeof(T));
 
             var objectSize = methodTable->BaseSize - methodTable->Class->BaseSizePadding;
-            var destination = GetObjectBody(@object);
-            var source = input;
-            Unsafe.CopyBlock(destination, source, objectSize);
+            Unsafe.CopyBlock(destination: GetObjectBody(@object), source: input, objectSize);
         }
 
         return (T)@object;
@@ -578,7 +577,7 @@ public unsafe static class FastestMemoryPacker
                     while (true)
                     {
                         var parentMethodTable = methodTable->ParentMethodTable;
-                        if (parentMethodTable is null) // it means that current methodTable is object
+                        if (parentMethodTable is null)
                             break;
 
                         var parentClass = parentMethodTable->Class;
@@ -654,75 +653,3 @@ public unsafe static class FastestMemoryPacker
         }
     }
 }
-
-/* all measurements were made for Core i3 10105 */
-
-/* "build xmm from two r64"
-
-    (nuint index, Vector128<ulong>* roots, ulong low, ulong high)
-    {
-        Vector128<ulong> xmm0, xmm1;
-
-        xmm1 = Vector128.CreateScalar(high);
-        xmm0 = Vector128.CreateScalar(low);
-        xmm0 = Sse2.Shuffle(xmm0.As<ulong, double>(), xmm1.As<ulong, double>(), 0).As<double, ulong>();
-
-        Sse2.Store((ulong*)(roots + index), xmm0);
-    }
-
-    count 4; size 20; score 3.04; latency 4.00
-    instruction                           code                       
-    vmovd    xmm0, r8                     vmovq (xmm, r64)           
-    vmovd    xmm1, r9                     vmovq (xmm, r64)           
-    vshufpd  xmm0, xmm0, xmm1, 0          vshufpd (xmm, xmm, xmm, i8)
-    vmovups  xmmword ptr [rdx+rcx], xmm0  vmovups
-    
-
-    (nuint index, Vector128<ulong>* roots, ulong low, ulong high)
-    {
-        Vector128<ulong> xmm0;
-
-        xmm0 = Vector128.CreateScalar(low);
-        xmm0 = Sse41.X64.Insert(xmm0, high, 1);
-
-        Sse2.Store((ulong*)(roots + index), xmm0);
-    }
-
-    count 3; size 16; score 3.04; latency 4.00
-    instruction                           code                        
-    vmovd    xmm0, r8                     vmovq (xmm, r64)            
-    vpinsrq  xmm0, xmm0, r9, 1            vpinsrq (xmm, xmm, r64, i8) 
-    vmovups  xmmword ptr [rdx+rcx], xmm0  vmovups                     
-*/
-
-/* "extract three u4 from xmm"
-    (Vector128<ulong> xmm0)
-    {
-        var a = xmm0.As<ulong, uint>().GetElement(0);
-        var b = xmm0.As<ulong, uint>().GetElement(1);
-        var c = xmm0.As<ulong, uint>().GetElement(2); 
-    }
-
-    count 4; size 20; score 11.03; latency 3.50
-    vmovups  xmm0, xmmword ptr [rcx]
-    vmovd    eax, xmm0
-    vpextrd  ecx, xmm0, 1
-    vpextrd  ecx, xmm0, 2
-    
-
-    (Vector128<ulong> xmm0)
-    {
-        var ab = xmm0.GetElement(0);
-        var a = ab & ~0u;
-        var b = ab >> 32;
-        var c = xmm0.As<ulong, uint>().GetElement(2);
-    }
-
-    count 6; size 23; score 10.03; latency 3.50
-    vmovups  xmm0, xmmword ptr [rcx]
-    vmovq    rax, xmm0
-    mov      ecx, eax
-    shr      rax, 32
-    mov      eax, eax
-    vpextrd  ecx, xmm0, 2
-*/

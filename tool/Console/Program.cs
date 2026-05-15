@@ -1,11 +1,29 @@
 ﻿using DotnetFastestMemoryPacker;
 using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 unsafe class Program
 {
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool VirtualProtect(
+        void* lpAddress,
+        UIntPtr dwSize,
+        uint flNewProtect,
+        uint* lpflOldProtect
+    );
+
+    [SuppressGCTransition]
+    [DllImport("DotnetFastestMemoryPacker.dll", EntryPoint = "MyNativeFunction")]
+    public static extern int MyNativeFunction();
+
     static bool hasMainThread = true;
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     static void Main()
     {
+        MyNativeFunction();
+        return;
+
         new Thread(MonitorGC).Start();
 
         var input = new A();

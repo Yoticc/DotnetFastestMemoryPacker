@@ -1,10 +1,17 @@
 ﻿using dnlib.DotNet;
+using dnlib.DotNet.Emit;
+using dnlib.DotNet.MD;
+using dnlib.DotNet.Writer;
+using dnlib.IO;
+using dnlib.PE;
+using PatcherReference;
 using System.Diagnostics.CodeAnalysis;
 
 partial class Program
 {
-    [AllowNull] ModuleDef corlibModule;
-    [AllowNull] ModuleDef module;
+    [AllowNull] ModuleDefMD corlibModule;
+    [AllowNull] ModuleDefMD module;
+    [AllowNull] ModuleWriterOptions moduleWriterOption;
 
     void ExecutePhase(string name, Action action)
     {

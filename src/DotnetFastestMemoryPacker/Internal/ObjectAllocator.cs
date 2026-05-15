@@ -1,13 +1,5 @@
-﻿using PatcherReference;
-using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+﻿using System.Runtime.CompilerServices;
 
-#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
-namespace DotnetFastestMemoryPacker.Internal;
-
-// the main goal of this class is to provide an implementation that can be easily ported in case of missing components.
-// it is not actually needed for the latest dotnet.
 unsafe class ObjectAllocator
 {
     static int ManagedSizeOf<T>() => typeof(T).IsValueType ? sizeof(T) : sizeof(nint);
@@ -68,7 +60,7 @@ unsafe class ObjectAllocator
         if (length == 0)
         {
             @object = string.Empty;
-            *objectSize = 4;
+            *objectSize = SizeOf.StringLength;
             return;
         }
 

@@ -1,6 +1,4 @@
-﻿namespace DotnetFastestMemoryPacker.Internal;
-
-struct SizeOf
+﻿struct SizeOf
 {
     public const uint PackedObjectsCount = 4/*sizeof(int)*/;
     public const uint PackedObjectRootsCount = 4/*sizeof(int)*/;

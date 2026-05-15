@@ -1,9 +1,6 @@
 ﻿using PatcherReference;
 using System.Runtime.CompilerServices;
 
-#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
-namespace DotnetFastestMemoryPacker.Internal;
-
 static unsafe class UnsafeAccessors
 {
     public static string AllocateUninitializedString(uint length)
@@ -25,7 +22,6 @@ static unsafe class UnsafeAccessors
         DeclaringTypeFullName: "System.RuntimeTypeHandle",
         MethodSignature: "System.Void System.RuntimeTypeHandle::InternalAllocNoChecks(System.Runtime.CompilerServices.MethodTable*,System.Runtime.CompilerServices.ObjectHandleOnStack)"
     )]
-
     static extern void InternalAllocNoChecks(MethodTable* methodTable, ref object @object);
 
     [UnsafeAccess("System.RuntimeTypeHandle")]

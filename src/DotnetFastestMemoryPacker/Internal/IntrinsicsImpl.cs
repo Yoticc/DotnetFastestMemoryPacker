@@ -1,7 +1,6 @@
 ﻿using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
-namespace DotnetFastestMemoryPacker.Internal;
 unsafe class IntrinsicsImpl
 {
     public static uint Sum(uint* array, uint length)

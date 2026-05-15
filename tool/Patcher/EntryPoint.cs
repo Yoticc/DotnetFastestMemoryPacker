@@ -1,9 +1,27 @@
-﻿using dnlib.DotNet;
+﻿using AsmResolver;
+using AsmResolver.DotNet;
+using AsmResolver.DotNet.Builder;
+using AsmResolver.DotNet.Code.Native;
+using AsmResolver.DotNet.Signatures;
+using AsmResolver.PE;
+using AsmResolver.PE.Builder;
+using AsmResolver.PE.DotNet;
+using AsmResolver.PE.DotNet.Builder;
+using AsmResolver.PE.DotNet.VTableFixups;
+using AsmResolver.PE.Exports;
+using AsmResolver.PE.File;
+using AsmResolver.PE.File.Headers;
+using dnlib.DotNet;
+using dnlib.DotNet.Writer;
 using System.Diagnostics;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using static System.Net.Mime.MediaTypeNames;
+using MethodAttributes = AsmResolver.PE.DotNet.Metadata.Tables.Rows.MethodAttributes;
+using MethodImplAttributes = AsmResolver.PE.DotNet.Metadata.Tables.Rows.MethodImplAttributes;
+using TypeAttributes = AsmResolver.PE.DotNet.Metadata.Tables.Rows.TypeAttributes;
 
 partial class Program
 {
@@ -607,7 +625,7 @@ partial class Program
             var targetAssemblies = Directory.GetFiles(currentDirectory, "DotnetFastestMemoryPacker.dll", SearchOption.AllDirectories);
             foreach (var targetAssembly in targetAssemblies)
             {
-                if (!targetAssembly.Contains($@"\Release\{TargetVersion}\"))
+                if (!targetAssembly.Contains($@"\bin\x64\Release\{TargetVersion}\"))
                     continue;
 
                 Console.WriteLine($"Target assembly: \"{targetAssembly}\" ({TargetVersion})");
@@ -625,19 +643,109 @@ partial class Program
                         continue;
                     }
 
-                    var asmResolver = new AssemblyResolver();
-                    var moduleContext = new ModuleContext(asmResolver);
-                    asmResolver.DefaultModuleContext = moduleContext;
+                    /*
+                    {
+                        var asmResolver = new AssemblyResolver();
+                        var moduleContext = new ModuleContext(asmResolver);
+                        asmResolver.DefaultModuleContext = moduleContext;
 
-                    var corlibAssemblyBytes = File.ReadAllBytes(typeof(object).Assembly.Location);
-                    corlibModule = ModuleDefMD.Load(corlibAssemblyBytes, moduleContext);
+                        var corlibAssemblyBytes = File.ReadAllBytes(typeof(object).Assembly.Location);
+                        corlibModule = ModuleDefMD.Load(corlibAssemblyBytes, moduleContext);
 
-                    module = ModuleDefMD.Load(fileStream, moduleContext);
-                    ExecuteAllPhases();
+                        module = ModuleDefMD.Load(fileStream, moduleContext);
+                        moduleWriterOption = new ModuleWriterOptions(module);
 
-                    fileStream.SetLength(0);
-                    fileStream.Position = 0;
-                    module.Write(fileStream);
+                        ExecuteAllPhases();
+
+                        fileStream.SetLength(0);
+                        fileStream.Position = 0;
+
+                        module.Write(fileStream, moduleWriterOption);
+                    }
+                    */
+
+                    
+                    {
+
+
+                        /*
+                        module.IsILOnly = false;
+                        module.PEKind = OptionalHeaderMagic.PE32Plus;
+                        module.MachineType = MachineType.Amd64;
+                        module.IsBit32Required = false;
+                        
+                        var method = new MethodDefinition(
+                            "MyNativeMethod",
+                            MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.PInvokeImpl,
+                            MethodSignature.CreateStatic(module.CorLibTypeFactory.Int32)
+                        );
+
+                        method.ImplAttributes = MethodImplAttributes.Native | MethodImplAttributes.Unmanaged | MethodImplAttributes.PreserveSig;
+
+                        module.GetOrCreateModuleType().Methods.Add(method);
+
+                        var nativeBody = new NativeMethodBody(method, new byte[]
+                        {
+                            0xB8, 0x37, 0x13, 0x00, 0x00, // mov eax, 1337
+                            0xC3                          // ret
+                        });
+
+                        method.NativeMethodBody = nativeBody;
+                        */
+
+                        {
+                            byte[] moduleBytes;
+                            using (var ms = new MemoryStream())
+                            {
+                                fileStream.Position = 0;
+                                fileStream.CopyTo(ms);
+                                moduleBytes = ms.ToArray();
+                            }
+
+                            var module = ModuleDefinition.FromBytes(moduleBytes);
+
+                            module.IsILOnly = false;
+                            module.PEKind = OptionalHeaderMagic.PE32Plus;
+                            module.MachineType = MachineType.Amd64;
+                            module.IsBit32Required = false;
+
+                            fileStream.SetLength(0);
+                            fileStream.Position = 0;
+                            module.Write(fileStream);
+                        }
+                        
+
+                        {
+                            byte[] moduleBytes;
+                            using (var ms = new MemoryStream())
+                            {
+                                fileStream.Position = 0;
+                                fileStream.CopyTo(ms);
+                                moduleBytes = ms.ToArray();
+                            }
+
+                            var module = PEImage.FromBytes(moduleBytes);
+
+                            var myData = new DataSegment(new byte[] { 0xB8, 0x39, 0x05, 0x00, 0x00, 0xC3 });
+                            var reference = new SegmentReference(myData);
+
+                            var myExport = new ExportedSymbol(reference, "MyNativeFunction");
+
+                            if (module.Exports == null)
+                                module.Exports = new ExportDirectory("DotnetFastestMemoryPacker.dll");
+
+                            module.Exports.Entries.Add(myExport);
+
+                            fileStream.SetLength(0);
+                            fileStream.Position = 0;
+
+                            var builder = new ManagedPEFileBuilder();
+                            var newFile = builder.CreateFile(module);
+                            newFile.Write(fileStream);
+                        }
+
+                    }
+
 
                     fileStream.Dispose();
                     return;

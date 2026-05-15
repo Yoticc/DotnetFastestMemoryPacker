@@ -1,5 +1,4 @@
-﻿using DotnetFastestMemoryPacker.Internal;
-using PatcherReference;
+﻿using PatcherReference;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
